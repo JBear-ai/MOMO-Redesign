@@ -79,6 +79,8 @@ export const clearAuthSession = (expectedSessionVersion = authSessionVersion) =>
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("username");
   localStorage.removeItem("nickname");
+  // 이전 버전에서 저장한 이메일도 인증 종료 시 정리한다.
+  localStorage.removeItem("email");
 
   // 기존 Promise는 취소할 수 없지만, 새 세션은 새 재발급을 시작할 수 있다.
   refreshPromise = null;

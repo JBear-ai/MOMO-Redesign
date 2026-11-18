@@ -1,341 +1,204 @@
-import { safeRequestFailure as requestFailureDetails } from "../../utils/safeRequestFailure";
-import React, { useEffect, useState } from "react";
-import SafeImage from "./SafeImage";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import SafeImage from "./SafeImage";
 import AxiosApi from "../../api/AxiosApi";
 import { getFavoriteMovies } from "../../utils/favorites";
 import { resolvePosterUrl } from "../../utils/mediaUrl";
 import { getPosterPollDelay } from "../../utils/posterPolling";
+import { safeRequestFailure } from "../../utils/safeRequestFailure";
 
-const isValidMovieCode = (movieCode) => /^[A-Za-z0-9]{8}$/.test(String(movieCode || ""));
-const isValidReleaseDate = (releaseDate) => /^\d{8}$/.test(String(releaseDate || ""));
+const isValidMovieCode = (code) => /^[A-Za-z0-9]{8}$/.test(String(code || ""));
 
-// Axios 오류 전체에는 Authorization 헤더가 포함될 수 있으므로 상태와 오류 코드만 기록한다.
-
-
-function TodayRecommend() {
-  const [movie, setMovie] = useState(null);
+// 기존 취향·미평가 영화 선택 규칙을 유지하면서 최대 네 편을 한 번만 준비한다.
+export default function TodayRecommend() {
+  const navigate = useNavigate();
+  const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const navigate = useNavigate();
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [timerVersion, setTimerVersion] = useState(0);
+  const progressTrack = useRef(null);
+  const clock = useRef({ elapsed: 0 });
 
   useEffect(() => {
     const controller = new AbortController();
-    let active = true;
-    let posterRefreshTimer = null;
+    const timers = new Set();
+    const alive = () => !controller.signal.aborted;
+    const checked = new Set();
+    const selected = [];
 
-    const getRating = async (movieCode) => {
-      try {
-        const response = await AxiosApi.movieRating(movieCode, controller.signal);
-        return response.data?.myRating ?? null;
-      } catch (requestError) {
-        if (requestError.code === "ERR_CANCELED") throw requestError;
-        // 평가 조회 실패 시 평가 여부를 확인할 수 없으므로 후보에서 제외한다.
-        return "UNKNOWN";
-      }
-    };
-
-    const attachMovieOverview = async (candidate) => {
-      try {
-        const detail = await AxiosApi.movieDetail(
-          candidate.movieCode,
-          controller.signal,
-        );
-        return {
-          ...candidate,
-          overview: String(detail.data?.overview || "").trim(),
-        };
-      } catch (detailError) {
-        if (detailError.code === "ERR_CANCELED") throw detailError;
-        console.warn("추천 영화 줄거리 조회 실패:", requestFailureDetails(detailError));
-        return { ...candidate, overview: "" };
-      }
-    };
-
-    const refreshRecommendationPoster = (movieCode, attempt = 0) => {
-      if (!active || attempt >= 3) return;
-
-      posterRefreshTimer = window.setTimeout(async () => {
+    const refreshPoster = (movieCode, attempt = 0) => {
+      if (!alive() || attempt >= 3) return;
+      const timer = window.setTimeout(async () => {
+        timers.delete(timer);
         try {
-          const response = await AxiosApi.moviePosterStatuses(
-            [movieCode],
-            controller.signal,
-          );
-          const status = Array.isArray(response.data)
-            ? response.data.find((item) => item.movieCode === movieCode)
-            : null;
-
+          const response = await AxiosApi.moviePosterStatuses([movieCode], controller.signal);
+          if (!alive()) return;
+          const status = Array.isArray(response.data) ? response.data.find((item) => item.movieCode === movieCode) : null;
           if (status?.status === "SUCCESS" && status.posterUrl) {
-            if (active) {
-              setMovie((current) =>
-                current?.movieCode === movieCode
-                  ? { ...current, posterUrl: status.posterUrl }
-                  : current,
-              );
-            }
+            setMovies((current) => current.map((item) => item.movieCode === movieCode ? { ...item, posterUrl: status.posterUrl } : item));
             return;
           }
-
-          // FAILED는 재시도하지 않는다. PENDING·PROCESSING만 다음 확인을 예약한다.
-          if (status?.status !== "PENDING" && status?.status !== "PROCESSING") {
-            return;
-          }
-        } catch (posterError) {
-          if (posterError.code === "ERR_CANCELED") return;
-          console.warn("추천 영화 포스터 상태 조회 실패:", requestFailureDetails(posterError));
+          if (!["PENDING", "PROCESSING"].includes(status?.status)) return;
+        } catch (requestError) {
+          if (!alive()) return;
+          console.warn("추천 포스터 상태 조회 실패:", safeRequestFailure(requestError));
         }
-
-        refreshRecommendationPoster(movieCode, attempt + 1);
+        refreshPoster(movieCode, attempt + 1);
       }, getPosterPollDelay(attempt));
+      timers.add(timer);
     };
-
-    const completeRecommendation = async (candidate) => {
-      const candidateWithOverview = await attachMovieOverview(candidate);
-      if (candidateWithOverview.posterUrl) return candidateWithOverview;
-
+    const enrich = async (candidate) => {
+      let movie = { ...candidate };
       try {
-        // 추천 후보는 박스오피스 조회 경로를 거치지 않으므로 포스터 조회 API를 직접 호출해 수집을 등록한다.
-        const posterResponse = await AxiosApi.moviePoster(
-          candidateWithOverview.movieCode,
-          controller.signal,
-        );
-        const posterUrl = posterResponse.data?.posterUrl;
-        if (posterUrl) {
-          return { ...candidateWithOverview, posterUrl };
+        const detail = await AxiosApi.movieDetail(candidate.movieCode, controller.signal);
+        // DTO가 실제 제공하는 보조 정보만 사용하고 빈 값은 화면에서 생략한다.
+        movie = { ...movie, titleEn: detail.data?.titleEn || "", runningTime: detail.data?.runningTime || "", genre: detail.data?.genre || movie.genre, overview: String(detail.data?.overview || "").trim() };
+      } catch (requestError) {
+        if (!alive()) throw requestError;
+        console.warn("추천 영화 상세 조회 실패:", safeRequestFailure(requestError));
+      }
+      if (!movie.posterUrl) {
+        try {
+          const poster = await AxiosApi.moviePoster(movie.movieCode, controller.signal);
+          movie.posterUrl = poster.data?.posterUrl || "";
+        } catch (requestError) {
+          if (!alive()) throw requestError;
+          console.warn("추천 포스터 조회 실패:", safeRequestFailure(requestError));
         }
-      } catch (posterError) {
-        if (posterError.code === "ERR_CANCELED") throw posterError;
-        console.warn("추천 영화 포스터 수집 등록 실패:", requestFailureDetails(posterError));
       }
-
-      // 비동기 수집이 완료되면 추천 배너의 포스터도 자동으로 갱신한다.
-      refreshRecommendationPoster(candidateWithOverview.movieCode);
-      return candidateWithOverview;
+      return movie;
     };
-
-    const chooseUnratedMovie = async (candidates, excludedCodes, checkedCodes) => {
-      const uniqueCandidates = (Array.isArray(candidates) ? candidates : [])
-        .filter((item, index, list) =>
-          item &&
-          isValidMovieCode(item.movieCode) &&
-          item.title?.trim() &&
-          isValidReleaseDate(item.releaseDate) &&
-          !excludedCodes.has(String(item.movieCode)) &&
-          list.findIndex((candidate) =>
-            String(candidate?.movieCode) === String(item.movieCode)
-          ) === index
-        );
-
-      for (const candidate of uniqueCandidates) {
-        const movieCode = String(candidate.movieCode);
-        if (checkedCodes.has(movieCode)) continue;
-        checkedCodes.add(movieCode);
-
-        const myRating = await getRating(movieCode);
-        if (myRating === null) return candidate;
+    const choose = async (candidates, excluded) => {
+      for (const candidate of Array.isArray(candidates) ? candidates : []) {
+        if (!alive() || selected.length >= 4) break;
+        const code = String(candidate?.movieCode || "");
+        if (!isValidMovieCode(code) || !candidate.title?.trim() || !/^\d{8}$/.test(candidate.releaseDate || "") || excluded.has(code) || checked.has(code)) continue;
+        checked.add(code);
+        try {
+          const rating = await AxiosApi.movieRating(code, controller.signal);
+          if (alive() && (rating.data?.myRating ?? null) === null) selected.push(candidate);
+        } catch (requestError) {
+          if (!alive()) throw requestError;
+          // 평가 여부를 확인하지 못한 영화는 기존 정책처럼 후보에서 제외한다.
+        }
       }
-
-      return null;
     };
-
-    async function loadRecommendation() {
+    const load = async () => {
       try {
-        setLoading(true);
-        setError(false);
-
         const favorites = getFavoriteMovies();
-        const favoriteCodes = new Set(
-          favorites.map((item) => String(item.movieCode)).filter(Boolean),
-        );
-
-        let likedMovies = [];
-
-        // 비로그인 사용자는 개인별 좋아요 API를 호출하지 않고 관심 영화로 추천한다.
+        let liked = [];
         if (localStorage.getItem("accessToken")) {
           try {
-            const likedResponse = await AxiosApi.myLikedMovies(controller.signal);
-            likedMovies = Array.isArray(likedResponse.data) ? likedResponse.data : [];
-          } catch (likedError) {
-            if (likedError.code === "ERR_CANCELED") throw likedError;
-            console.warn("좋아요 영화 목록 조회 실패. 관심 영화로 대체합니다.", requestFailureDetails(likedError));
+            const response = await AxiosApi.myLikedMovies(controller.signal);
+            liked = Array.isArray(response.data) ? response.data : [];
+          } catch (requestError) {
+            if (!alive()) throw requestError;
+            console.warn("좋아요 영화 조회 실패. 관심 영화로 대체합니다.", safeRequestFailure(requestError));
           }
         }
-
-        // 좋아요 및 관심 영화는 추천 후보에서 제외한다.
-        const excludedCodes = new Set([
-          ...favoriteCodes,
-          ...likedMovies.map((item) => String(item.movieCode)).filter(Boolean),
-        ]);
-        const checkedCodes = new Set();
-
-        // 가장 최근 좋아요 영화를 취향 분석 기준으로 사용한다.
-        const seedMovie = likedMovies[0] || favorites[favorites.length - 1];
-        let preferredGenre = seedMovie?.genre || "";
-
-        if (!preferredGenre && isValidMovieCode(seedMovie?.movieCode)) {
-          try {
-            const detail = await AxiosApi.movieDetail(
-              seedMovie.movieCode,
-              controller.signal,
-            );
-            preferredGenre = detail.data?.genre || "";
-          } catch (detailError) {
-            if (detailError.code === "ERR_CANCELED") throw detailError;
-            console.warn("취향 분석용 영화 상세정보 조회 실패:", requestFailureDetails(detailError));
-          }
+        const excluded = new Set([...favorites, ...liked].map((item) => String(item.movieCode)));
+        const seed = liked[0] || favorites[favorites.length - 1];
+        let preferred = seed?.genre || "";
+        if (!preferred && isValidMovieCode(seed?.movieCode)) {
+          try { preferred = (await AxiosApi.movieDetail(seed.movieCode, controller.signal)).data?.genre || ""; }
+          catch (requestError) { if (!alive()) throw requestError; }
         }
-
-        const genre = preferredGenre
-          .split(",")
-          .map((value) => value.trim())
-          .find(Boolean);
-
-        // 장르가 일치하면서 박스오피스 진입 이력이 확인된 영화만 조회한다.
+        const genre = preferred.split(",").map((item) => item.trim()).find(Boolean);
         if (genre) {
-          try {
-            const genreResponse = await AxiosApi.boxOfficeRecommendations(
-              genre,
-              controller.signal,
-            );
-            const selected = await chooseUnratedMovie(
-              genreResponse.data,
-              excludedCodes,
-              checkedCodes,
-            );
-
-            if (selected) {
-              const selectedWithPoster = await completeRecommendation(selected);
-              if (active) setMovie(selectedWithPoster);
-              return;
-            }
-          } catch (genreError) {
-            if (genreError.code === "ERR_CANCELED") throw genreError;
-            console.warn("장르 기반 추천 조회 실패. 박스오피스 전체 후보로 전환합니다.", requestFailureDetails(genreError));
+          try { await choose((await AxiosApi.boxOfficeRecommendations(genre, controller.signal)).data, excluded); }
+          catch (requestError) {
+            if (!alive()) throw requestError;
+            console.warn("장르 추천 조회 실패. 전체 후보로 전환합니다.", safeRequestFailure(requestError));
           }
         }
-
-        // 장르 후보가 없거나 취향 정보가 없으면 박스오피스 이력 전체에서 대체한다.
-        const fallbackResponse = await AxiosApi.boxOfficeRecommendations(
-          null,
-          controller.signal,
-        );
-        const fallback = await chooseUnratedMovie(
-          fallbackResponse.data,
-          excludedCodes,
-          checkedCodes,
-        );
-
-        const fallbackWithPoster = fallback
-          ? await completeRecommendation(fallback)
-          : null;
-        if (active) setMovie(fallbackWithPoster);
-      } catch (requestError) {
-        if (requestError.code !== "ERR_CANCELED") {
-          console.error("오늘의 추천작 조회 실패:", requestFailureDetails(requestError));
-          if (active) setError(true);
+        // 장르 후보가 부족하면 전체 이력에서 보충하되 같은 영화의 평가는 다시 조회하지 않는다.
+        if (selected.length < 4) {
+          try { await choose((await AxiosApi.boxOfficeRecommendations(null, controller.signal)).data, excluded); }
+          catch (requestError) { if (!selected.length || !alive()) throw requestError; }
         }
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    loadRecommendation();
-    return () => {
-      active = false;
-      if (posterRefreshTimer) {
-        window.clearTimeout(posterRefreshTimer);
-      }
-      controller.abort();
+        if (!alive()) return;
+        const prepared = await Promise.all(selected.map(enrich));
+        if (!alive()) return;
+        setMovies(prepared);
+        prepared.filter((item) => !item.posterUrl).forEach((item) => refreshPoster(item.movieCode));
+      } catch (requestError) {
+        if (alive()) { setError(true); console.error("오늘의 추천작 조회 실패:", safeRequestFailure(requestError)); }
+      } finally { if (alive()) setLoading(false); }
     };
+    load();
+    return () => { controller.abort(); timers.forEach(window.clearTimeout); };
   }, []);
 
-  if (loading) {
-    return React.createElement(
-  "div",
-  {"className":"recommend-state"},
-  "오늘의 추천작을 불러오는 중입니다."
-);
-  }
+  // 수동 이동과 새 영화 선택은 진행률·시간을 동시에 0으로 돌린다.
+  useEffect(() => {
+    clock.current.elapsed = 0;
+    progressTrack.current?.style.setProperty("--slide-progress", "0");
+  }, [index, movies.length, timerVersion]);
 
-  if (error) {
-    return (
-      React.createElement(
-  "div",
-  {"className":"recommend-state"},
-  "추천 영화 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
-)
-    );
-  }
-
-  if (!movie) {
-    return (
-      React.createElement(
-  "div",
-  {"className":"recommend-state"},
-  "현재 추천할 수 있는 영화가 없습니다."
-)
-    );
-  }
-
-  const releaseYear = movie.releaseDate.slice(0, 4);
-
-  return (
-    React.createElement(
-  "section",
-  {"className":"recommend-banner"},
-  React.createElement(SafeImage, {
-    className: "recommend-poster",
-    src: resolvePosterUrl(movie.posterUrl),
-    alt: movie.title,
-    fallback: React.createElement(
-      "div",
-      { className: "recommend-poster poster-placeholder" },
-      "포스터 준비 중"
-    ),
-  }),
-  React.createElement(
-      "div",
-      {"className":"recommend-overlay"}
-    ),
-  React.createElement(
-      "div",
-      {"className":"recommend-content"},
-      React.createElement(
-            "span",
-            {"className":"recommend-label"},
-            "오늘의 추천작"
-          ),
-      React.createElement(
-            "h2",
-            {"className":"recommend-title"},
-            (movie.title)
-          ),
-      React.createElement(
-            "p",
-            {"className":"recommend-info"},
-            ([releaseYear && `${releaseYear}년 개봉`, movie.genre]
-                        .filter(Boolean)
-                        .join(" · "))
-          ),
-      (movie.overview && (
-                React.createElement(
-            "p",
-            {"className":"recommend-description"},
-            (movie.overview)
-          )
-              )),
-      React.createElement(
-            "button",
-            {"className":"recommend-button","type":"button","onClick":() => {
-                        if (isValidMovieCode(movie.movieCode)) {
-                          navigate(`/movie/${encodeURIComponent(movie.movieCode)}`);
-                        }
-                      }},
-            "영화 자세히 보기"
-          )
-    )
-)
-  );
+  // 표시와 전환 완료가 같은 시작 시각을 사용하므로 별도의 CSS 시계와 어긋나지 않는다.
+  // 정지할 때 경과 시간을 보존하고 재생할 때 남은 시간만 예약한다.
+  useEffect(() => {
+    if (movies.length < 2 || paused || hovered || focused) return;
+    const clockState = clock.current;
+    const track = progressTrack.current;
+    const elapsed = clockState.elapsed;
+    const started = performance.now();
+    let frame;
+    const paint = () => {
+      const current = Math.min(10000, elapsed + performance.now() - started);
+      track?.style.setProperty("--slide-progress", String(current / 10000));
+      frame = window.requestAnimationFrame(paint);
+    };
+    frame = window.requestAnimationFrame(paint);
+    const timer = window.setTimeout(() => {
+      track?.style.setProperty("--slide-progress", "1");
+      setIndex((current) => (current + 1) % movies.length);
+    }, Math.max(0, 10000 - elapsed));
+    return () => {
+      window.clearTimeout(timer);
+      window.cancelAnimationFrame(frame);
+      clockState.elapsed = Math.min(10000, elapsed + performance.now() - started);
+      track?.style.setProperty("--slide-progress", String(clockState.elapsed / 10000));
+    };
+  }, [index, movies.length, paused, hovered, focused, timerVersion]);
+  const move = (step) => {
+    setIndex((current) => (current + step + movies.length) % movies.length);
+    setTimerVersion((version) => version + 1);
+  };
+  const movie = movies[index];
+  const openMovie = () => { if (isValidMovieCode(movie?.movieCode)) navigate(`/movie/${encodeURIComponent(movie.movieCode)}`); };
+  return <section className="recommend-banner" aria-label="오늘의 추천 영화" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+    onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
+    {loading || error || !movie ? <div className="recommend-state" role={error ? "alert" : "status"}>
+      <h1>영화를 기억하는<br />가장 따뜻한 방법</h1>
+      <p>{loading ? "오늘의 추천작을 불러오는 중입니다." : error ? "추천 영화 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." : "현재 추천할 수 있는 영화가 없습니다."}</p>
+    </div> : <div className="recommend-layout" key={movie.movieCode}>
+      <div className="recommend-content">
+        <p className="recommend-label">오늘 기억하고 싶은 영화</p>
+        <h1 className="recommend-title">{movie.title}</h1>
+        <p className="recommend-subtitle">{[movie.titleEn, movie.releaseDate?.slice(0, 4)].filter(Boolean).join(" · ")}</p>
+        <p className="recommend-info">{[movie.genre, movie.runningTime && `${movie.runningTime}분`].filter(Boolean).join(" · ")}</p>
+        {movie.overview && <p className="recommend-description">{movie.overview}</p>}
+        <button className="recommend-button" type="button" onClick={openMovie}>영화 자세히 보기</button>
+      </div>
+      <button className="recommend-poster-link" type="button" aria-label={`${movie.title} 상세 페이지`} onClick={openMovie}>
+        <SafeImage className="recommend-poster" src={resolvePosterUrl(movie.posterUrl)} alt={movie.title} fallback={<div className="recommend-poster poster-placeholder">포스터 준비 중</div>} />
+      </button>
+    </div>}
+    <div className="recommend-footer">
+      <p>영화를 보고, 느끼고, 남기는 나만의 영화 기록</p>
+      <div className="recommend-controls" aria-label="추천 영화 전환">
+        <button type="button" aria-label="이전 추천 영화" disabled={movies.length < 2} onClick={() => move(-1)}>‹</button>
+        <div className="recommend-dots" ref={progressTrack}>{movies.map((item, i) => <button key={item.movieCode} type="button" aria-label={`${i + 1}번째 추천 영화`} aria-current={i === index ? "true" : undefined}
+          onClick={() => { setIndex(i); setTimerVersion((version) => version + 1); }}><span><i /></span></button>)}</div>
+        <span className="recommend-counter" aria-live={paused || focused ? "polite" : "off"}>{String(movie ? index + 1 : 0).padStart(2, "0")} / {String(movies.length).padStart(2, "0")}</span>
+        <button type="button" aria-label="다음 추천 영화" disabled={movies.length < 2} onClick={() => move(1)}>›</button>
+        <button type="button" aria-label={paused ? "추천 자동 전환 재생" : "추천 자동 전환 일시정지"} disabled={movies.length < 2} onClick={() => setPaused((current) => !current)}>{paused ? "▶" : "Ⅱ"}</button>
+      </div>
+    </div>
+  </section>;
 }
-
-export default TodayRecommend;

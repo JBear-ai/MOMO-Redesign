@@ -185,7 +185,7 @@ function LikedReviews() {
   };
 
   return (
-    <main className="liked-reviews-page">
+    <main className="liked-reviews-page" data-archive-page="liked-reviews">
       <div className="liked-reviews-container">
         {/* 페이지 제목 */}
         <header className="liked-reviews-heading">

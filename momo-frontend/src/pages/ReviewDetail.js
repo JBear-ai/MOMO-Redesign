@@ -469,7 +469,7 @@ function ReviewDetail() {
   if (loading) {
     return h(
       "div",
-      { className: "review-detail-page" },
+      { className: "review-detail-page", "data-archive-page": "review" },
       h(
         "div",
         { className: "review-detail-state" },
@@ -482,7 +482,7 @@ function ReviewDetail() {
   if (error || !review) {
     return h(
       "div",
-      { className: "review-detail-page" },
+      { className: "review-detail-page", "data-archive-page": "review" },
       h(
         Link,
         {
@@ -501,73 +501,24 @@ function ReviewDetail() {
     );
   }
 
-  // 리뷰 상단
-  const reviewHeader = h(
-    "div",
-    { className: "review-detail-top" },
-
-    h(
-      "div",
-      { className: "review-detail-main" },
-
-      h("p", { className: "review-detail-eyebrow" }, "MOMO COMMUNITY REVIEW"),
-
-      editingReview
-        ? h("input", {
-            className: "review-edit-title",
-            value: editTitle,
-            maxLength: 100,
-            onChange: (e) => setEditTitle(e.target.value),
-            placeholder: "리뷰 제목을 입력해주세요.",
-          })
-        : h("h1", { className: "review-detail-title" }, review.title),
-
-      h(
-        "div",
-        { className: "review-detail-meta" },
-
-        h(
-          "span",
-          null,
-          "작성자 ",
-          h("strong", null, review.nickname || "익명"),
-        ),
-
-        h("span", null, "작성일 ", formatDate(review.createdAt)),
-
-        review.updatedAt &&
-          new Date(review.updatedAt).getTime() >
-            new Date(review.createdAt).getTime() &&
-          h("span", null, "수정일 ", formatDate(review.updatedAt)),
-      ),
-    ),
-
-    isReviewAuthor &&
-      !editingReview &&
-      h(
-        "div",
-        { className: "review-detail-actions" },
-
-        h(
-          "button",
-          {
-            type: "button",
-            className: "review-action-button",
-            onClick: () => setEditingReview(true),
-          },
-          "수정",
-        ),
-
-        h(
-          "button",
-          {
-            type: "button",
-            className: "review-action-button delete",
-            onClick: handleReviewDelete,
-          },
-          "삭제",
-        ),
-      ),
+  // 작성자 정보와 본인 전용 조작을 한 행에 두되 기존 권한 판별은 그대로 사용한다.
+  const reviewHeader = (
+    <header className="review-detail-top">
+      <div className="review-detail-main">
+        {editingReview ? <input className="review-edit-title" value={editTitle} maxLength={100} onChange={(event) => setEditTitle(event.target.value)} placeholder="리뷰 제목을 입력해주세요." /> : <h1 className="review-detail-title">{review.title}</h1>}
+        <div className="review-detail-byline">
+          <div className="review-detail-meta">
+            <span>작성자 <strong>{review.nickname || "익명"}</strong></span>
+            <span>작성일 {formatDate(review.createdAt)}</span>
+            {review.updatedAt && new Date(review.updatedAt).getTime() > new Date(review.createdAt).getTime() && <span>수정일 {formatDate(review.updatedAt)}</span>}
+          </div>
+          {isReviewAuthor && !editingReview && <div className="review-detail-actions">
+            <button type="button" className="review-action-button" onClick={() => setEditingReview(true)}>수정</button>
+            <button type="button" className="review-action-button delete" onClick={handleReviewDelete}>삭제</button>
+          </div>}
+        </div>
+      </div>
+    </header>
   );
 
   // 리뷰 수정 영역
@@ -777,6 +728,13 @@ function ReviewDetail() {
                 { className: "review-comment-meta" },
 
                 h("strong", null, comment.nickname || "익명"),
+                // 로그인 계정과 무관하게 원글 작성자의 댓글에만 배지를 표시한다.
+                comment.userId != null && review.userId != null &&
+                  String(comment.userId) === String(review.userId) &&
+                  h("span", { className: "review-author-badge" },
+                    h("svg", { viewBox: "0 0 16 16", width: 12, height: 12, "aria-hidden": true },
+                      h("path", { d: "M11 1l4 4-9 9-5 1 1-5zM9 3l4 4", fill: "none", stroke: "currentColor", strokeWidth: 1.5 })),
+                    "글쓴이"),
 
                 h("span", null, formatDate(comment.createdAt)),
 
@@ -887,7 +845,7 @@ function ReviewDetail() {
   // 최종 화면
   return h(
     "div",
-    { className: "review-detail-page" },
+    { className: "review-detail-page", "data-archive-page": "review" },
 
     h(
       Link,
@@ -905,8 +863,8 @@ function ReviewDetail() {
       reviewHeader,
       reviewEditArea,
       movieSection,
-      reactionSection,
       reviewContentSection,
+      reactionSection,
     ),
 
     h(

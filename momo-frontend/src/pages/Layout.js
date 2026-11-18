@@ -30,6 +30,8 @@ import textlogo from "../textlogo.png";
 import AxiosApi, { clearAuthSession, getAuthSessionVersion, isAuthSessionCurrent } from "../api/AxiosApi";
 import { getCurrentFavoriteUserId, syncFavoriteMoviesFromServer } from "../utils/favorites";
 import MovieSearchAutocomplete from "../components/common/MovieSearchAutocomplete";
+import ScrollToTop from "../components/home/ScrollToTop";
+import { archivePageForPath } from "../styles/redesign/ArchivePages.styles";
 import ChatPopup from "../components/chat/ChatPopup";
 
 // ========================================
@@ -165,7 +167,7 @@ function Layout() {
   // ========================================
 
   return (
-    <Container>
+    <Container $homeRedesign={location.pathname === "/"} $archiveRedesign={Boolean(archivePageForPath(location.pathname))}>
       <Header>
         <Logo to="/" aria-label="MOMO 홈">
           <LogoImage src={textlogo} alt="MOMO" />
@@ -175,6 +177,12 @@ function Layout() {
         <MovieSearchAutocomplete />
 
         <Navigation>
+          {!authLoading && !nickname && (location.pathname === "/" || archivePageForPath(location.pathname)) && (
+            <UserArea>
+              <NavLink to="/">홈</NavLink>
+              <NavLink to="/reviews">전체 리뷰</NavLink>
+            </UserArea>
+          )}
           {!authLoading &&
             (nickname ? (
               <UserArea>
@@ -247,6 +255,7 @@ function Layout() {
         </FooterBottom>
       </Footer>
       <ChatPopup />
+      {archivePageForPath(location.pathname) && <ScrollToTop />}
     </Container>
   );
 }

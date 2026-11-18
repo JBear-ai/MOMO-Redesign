@@ -1,6 +1,9 @@
 import styled from "styled-components";
 import { Link } from "react-router-dom";
+import { archivePageTheme } from "../redesign/ArchivePages.styles";
+import { homeRedesignTheme } from "../redesign/HomeTheme.styles";
 
+// 원본 테마를 남기고 홈과 지정한 리디자인 화면에서만 새 디자인 변수를 활성화한다.
 const Container = styled.div`
   min-height: 100vh;
   display: flex;
@@ -8,6 +11,9 @@ const Container = styled.div`
   background-color: #f5f2eb;
   color: #1c1a17;
   letter-spacing: -0.01em;
+
+  ${({ $homeRedesign }) => $homeRedesign && homeRedesignTheme}
+  ${({ $archiveRedesign }) => $archiveRedesign && archivePageTheme}
 `;
 
 // ========================================
@@ -18,13 +24,13 @@ const Header = styled.header`
   position: sticky;
   top: 0;
   z-index: 100;
-  min-height: 76px;
-  padding: 0 8%;
+  min-height: var(--home-header-height, 76px);
+  padding: var(--home-header-padding, 0 8%);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  background-color: #ffffff;
+  background-color: var(--home-header-bg, #ffffff);
   border-bottom: 1px solid #e2dbd0;
   box-sizing: border-box;
   box-shadow: 0 4px 20px -4px rgba(45, 38, 26, 0.03);
@@ -40,6 +46,7 @@ const LogoImage = styled.img`
   display: block;
   width: auto;
   height: 38px;
+  filter: var(--home-logo-filter, none);
   object-fit: contain;
 `;
 
@@ -51,19 +58,19 @@ const Navigation = styled.nav`
   gap: 24px;
 
   a {
-    color: #787062;
+    color: var(--home-nav-color, #787062);
     text-decoration: none;
     font-size: 14px;
     font-weight: 600;
     transition: color 0.15s ease;
 
     &:hover {
-      color: #1c1a17;
+      color: var(--home-nav-active, #1c1a17);
     }
   }
 
   a.active {
-    color: #1c1a17;
+    color: var(--home-nav-active, #1c1a17);
     font-weight: 800;
   }
 `;
@@ -74,6 +81,7 @@ const UserArea = styled.div`
   gap: 16px;
   white-space: nowrap;
   font-size: 14px;
+  color: var(--home-nav-color, #1c1a17);
 `;
 
 const ActionButton = styled.button`
@@ -102,8 +110,10 @@ const ActionButton = styled.button`
 
 const Main = styled.main`
   flex: 1;
-  padding: 40px 8%;
-  width: 100%;
+  padding: var(--home-main-padding, 40px 8%);
+  width: var(--home-main-width, 100%);
+  max-width: var(--home-main-max, none);
+  margin: 0 auto;
   box-sizing: border-box;
 `;
 
@@ -112,8 +122,8 @@ const Main = styled.main`
 // ========================================
 
 const Footer = styled.footer`
-  padding: 44px 8%;
-  background-color: #efe8da;
+  padding: var(--home-footer-padding, 44px 8%);
+  background-color: var(--home-footer-bg, #efe8da);
   color: #595042;
   border-top: 1px solid #e2dbd0;
   box-sizing: border-box;

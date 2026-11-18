@@ -38,7 +38,7 @@ function FavoriteMovies() {
   return (
     React.createElement(
       "main",
-      { className: "favorite-page" },
+      { className: "favorite-page", "data-archive-page": "favorites" },
       React.createElement(
         "div",
         { className: "favorite-page-container" },

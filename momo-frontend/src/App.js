@@ -1,4 +1,5 @@
 import React from "react";
+import ArchivePagesStyles from "./styles/redesign/ArchivePages.styles";
 import GlobalStyles from "./styles/GlobalStyles";
 import ToastNotification from "./components/common/ToastNotification";
 
@@ -31,6 +32,7 @@ function App() {
   return (
     <BrowserRouter>
       <GlobalStyles />
+      <ArchivePagesStyles />
       <ToastNotification />
       <Routes>
         <Route element={<Layout />}>

@@ -197,7 +197,7 @@ function AllReviews() {
   const pageNumbers = Array.from({ length: totalPages }, (_, index) => index);
 
   return (
-    <div className="all-reviews-page">
+    <div className="all-reviews-page" data-archive-page="reviews">
       {/* 상단 소개 */}
       <section className="all-reviews-heading">
         <div>
@@ -278,139 +278,16 @@ function AllReviews() {
           </div>
         ) : (
           <>
-            {/* PC 테이블 */}
-            <div className="all-reviews-table-wrap">
-              <table className="all-reviews-table">
-                <thead>
-                  <tr>
-                    <th className="review-movie-column">영화</th>
-                    <th className="review-title-column">리뷰 제목</th>
-                    <th className="review-author-column">작성자</th>
-                    <th className="review-date-column">작성일</th>
-                    <th className="review-stats-column">반응</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {reviews.map((review) => {
-                    const info = reviewInfo[review.reviewId];
-
-                    return (
-                      <tr
-                        key={review.reviewId}
-                        className="review-clickable-row"
-                        onClick={() => handleReviewClick(review.reviewId)}
-                      >
-                        <td className="review-movie-cell">
-                          <div className="all-review-movie-info">
-                            <div className="all-review-poster">
-                              <SafeImage
-                                src={resolvePosterUrl(info?.posterUrl)}
-                                alt={review.movieTitle || "영화 포스터"}
-                                fallbackClassName="all-review-poster-placeholder"
-                              />
-                            </div>
-
-                            <div>
-                              <span className="review-movie-title">
-                                {review.movieTitle || "알 수 없는 영화"}
-                              </span>
-
-                              {review.movieYear && (
-                                <span className="review-movie-year">
-                                  ({review.movieYear})
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="review-title-cell">
-                          <Link
-                            to={`/reviews/${review.reviewId}`}
-                            className="review-title-link"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            {review.title}
-                          </Link>
-                        </td>
-
-                        <td className="review-author-cell">
-                          {review.nickname || "익명"}
-                        </td>
-
-                        <td className="review-date-cell">
-                          {formatDate(review.createdAt)}
-                        </td>
-
-                        <td className="review-stats-cell">
-                          <div className="all-review-stats">
-                            <span>댓글 {info?.commentCount ?? 0}</span>
-                            <span>좋아요 {info?.likeCount ?? 0}</span>
-                            <span>싫어요 {info?.dislikeCount ?? 0}</span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* 모바일 목록 */}
-            <div className="all-reviews-mobile-list">
+            <div className="archive-review-list">
               {reviews.map((review) => {
                 const info = reviewInfo[review.reviewId];
-
-                return (
-                  <article
-                    className="all-reviews-mobile-item"
-                    key={review.reviewId}
-                    onClick={() => handleReviewClick(review.reviewId)}
-                  >
-                    <div className="all-review-mobile-content">
-                      <div className="all-review-poster">
-                        <SafeImage
-                          src={resolvePosterUrl(info?.posterUrl)}
-                          alt={review.movieTitle || "영화 포스터"}
-                          fallbackClassName="all-review-poster-placeholder"
-                        />
-                      </div>
-
-                      <div className="all-review-mobile-info">
-                        <p className="mobile-review-movie">
-                          {review.movieTitle || "알 수 없는 영화"}
-                          {review.movieYear ? ` (${review.movieYear})` : ""}
-                        </p>
-
-                        <Link
-                          to={`/reviews/${review.reviewId}`}
-                          className="mobile-review-title"
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          {review.title}
-                        </Link>
-
-                        <div className="mobile-review-meta">
-                          <span>{review.nickname || "익명"}</span>
-                          <span>{formatDate(review.createdAt)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="all-review-mobile-stats">
-                      <span>
-                        댓글 <strong>{info?.commentCount ?? 0}</strong>
-                      </span>
-                      <span>
-                        좋아요 <strong>{info?.likeCount ?? 0}</strong>
-                      </span>
-                      <span>
-                        싫어요 <strong>{info?.dislikeCount ?? 0}</strong>
-                      </span>
-                    </div>
-                  </article>
-                );
+                return <article className="archive-review-row" key={review.reviewId} onClick={() => handleReviewClick(review.reviewId)}>
+                  <div className="all-review-poster"><SafeImage src={resolvePosterUrl(info?.posterUrl)} alt={review.movieTitle || "영화 포스터"} fallbackClassName="all-review-poster-placeholder" /></div>
+                  <div><p className="archive-review-movie">{review.movieTitle || "알 수 없는 영화"}{review.movieYear ? ` · ${review.movieYear}` : ""}</p>
+                    <Link to={`/reviews/${review.reviewId}`} className="review-title-link" onClick={(event) => event.stopPropagation()}>{review.title}</Link>
+                    <div className="archive-review-meta"><span>{review.nickname || "익명"}</span><time dateTime={review.createdAt}>{formatDate(review.createdAt)}</time><span>좋아요 {info?.likeCount ?? 0}</span><span>싫어요 {info?.dislikeCount ?? 0}</span><span>댓글 {info?.commentCount ?? 0}</span></div>
+                  </div>
+                </article>;
               })}
             </div>
 

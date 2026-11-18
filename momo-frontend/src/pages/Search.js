@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   SearchPage,
   SearchHeading,
-  SearchInput,
   MovieGrid,
   MovieCard,
   Poster,
@@ -72,7 +71,7 @@ function MovieItem({ movie, index, posterUrl, onClick, onImageError }) {
   posterUrl &&
     React.createElement(
       Poster,
-      null,
+      { className: "archive-search-poster" },
       React.createElement(
         "img",
         {
@@ -119,13 +118,12 @@ function MovieItem({ movie, index, posterUrl, onClick, onImageError }) {
 
 function Search() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const keyword = searchParams.get("keyword") || "";
   const genre = searchParams.get("genre") || "";
   const isGenreMode = Boolean(genre.trim());
   const searchValue = isGenreMode ? genre.trim() : keyword.trim();
-  const [keywordInput, setKeywordInput] = useState(keyword);
 
   // KOBIS에서 받아온 전체 영화 후보
   const [movies, setMovies] = useState([]);
@@ -648,19 +646,6 @@ function Search() {
     loadPage,
   ]);
 
-  // 검색어 입력
-
-  useEffect(() => {
-    setKeywordInput(isGenreMode ? "" : keyword);
-  }, [isGenreMode, keyword]);
-
-  const handleKeywordSubmit = (e) => {
-    e.preventDefault();
-
-    const value = keywordInput.trim();
-    setSearchParams(value ? { keyword: value } : {}, { replace: true });
-  };
-
   // 영화 상세 페이지 이동
 
   const handleMovieClick = (movieCode) => {
@@ -682,14 +667,14 @@ function Search() {
   return (
     React.createElement(
   SearchPage,
-  null,
+  { "data-archive-page": "search" },
   React.createElement(
       SearchHeading,
-      null,
+      { className: "archive-heading" },
       React.createElement(
             "h1",
             null,
-            (isGenreMode ? `${genre.trim()} 영화` : "어떤 영화를 찾으세요?")
+            (isGenreMode ? `${genre.trim()} 영화` : keyword.trim() ? `'${keyword.trim()}' 검색 결과` : "어떤 영화를 찾으세요?")
           ),
       React.createElement(
             "p",
@@ -697,14 +682,6 @@ function Search() {
             (isGenreMode
                         ? "선택한 장르의 영화를 살펴보세요."
                         : "기억하고 싶은 영화를 검색하고 감상을 기록해 보세요.")
-          )
-    ),
-  React.createElement(
-      "form",
-      {"role":"search","onSubmit":handleKeywordSubmit},
-      React.createElement(
-            SearchInput,
-            {"type":"search","aria-label":"영화 제목 검색","placeholder":"영화 제목을 입력한 뒤 Enter를 눌러 주세요.","value":keywordInput,"onChange":(e) => setKeywordInput(e.target.value)}
           )
     ),
   (!searchValue ? (
@@ -748,7 +725,7 @@ function Search() {
       null,
       React.createElement(
         MovieGrid,
-        null,
+        { className: "archive-search-grid" },
         displayMovies.map((movie, index) =>
           React.createElement(
             MovieItem,

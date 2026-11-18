@@ -3,6 +3,7 @@ jest.mock("../api/AxiosApi", () => ({ __esModule: true, default: { memberLogin: 
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import Login from "./Login";
+jest.mock("../components/redesign/ArchiveAuthFrame", () => ({ children }) => children);
 import AxiosApi from "../api/AxiosApi";
 test("login failure preserves user message while omitting request secrets from logs", async () => {
  const log = jest.spyOn(console, "error").mockImplementation(() => {});

@@ -61,7 +61,7 @@ function ProfileDelete() {
   };
   return React.createElement(
     "main",
-    { className: "profile-page" },
+    { className: "profile-page", "data-archive-page": "delete" },
     React.createElement(
       "section",
       { className: "profile-container" },

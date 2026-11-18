@@ -137,7 +137,7 @@ function MyReviews() {
   const pageNumbers = Array.from({ length: totalPages }, (_, index) => index);
 
   return (
-    <main className="my-reviews-page">
+    <main className="my-reviews-page" data-archive-page="my-reviews">
       <section className="my-reviews-heading">
         <div>
           <p className="my-reviews-eyebrow">MY MOMO</p>
