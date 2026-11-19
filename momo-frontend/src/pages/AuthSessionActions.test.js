@@ -14,6 +14,13 @@ jest.mock("../api/AxiosApi", () => {
 jest.mock("../utils/favorites", () => ({ getCurrentFavoriteUserId: () => null, syncFavoriteMoviesFromServer: jest.fn() }));
 jest.mock("../components/chat/ChatPopup", () => () => null);
 jest.mock("../components/common/MovieSearchAutocomplete", () => () => null);
+// 세션 검증은 실제 핸들러를 사용하고 JSDOM이 해석하지 못하는 테마 선택자와 분리한다.
+jest.mock("../styles/legacy/Layout.styles", () => {
+  const React = require("react");
+  const names = ["Container", "Header", "Logo", "LogoImage", "Navigation", "UserArea", "ActionButton", "Main", "Footer", "FooterContainer", "FooterLeft", "FooterLogo", "FooterDesc", "FooterRight", "FooterColumn", "FooterBottom"];
+  return Object.fromEntries(names.map((name) => [name, ({ children, onClick, disabled }) =>
+    React.createElement(name === "ActionButton" ? "button" : "div", { onClick, disabled }, children)]));
+});
 
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
