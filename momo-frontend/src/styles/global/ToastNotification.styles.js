@@ -4,13 +4,13 @@ import { createGlobalStyle } from "styled-components";
 const ToastNotificationStyles = createGlobalStyle`
   .momo-toast {
     /* MOMO 팔레트 — 실제 토큰으로 교체 가능 */
-    --momo-paper: #FFFAEC;
-    --momo-paper-line: #E9DFC5;
-    --momo-ink: #302C24;
-    --momo-muted: #827865;
-    --momo-mustard: #FFD43B;
-    --momo-teal: #FFD43B;
-    --momo-teal-deep: #E5B923;
+    --momo-paper: var(--momo-surface);
+    --momo-paper-line: var(--momo-border);
+    --momo-ink: var(--momo-text);
+    --momo-muted: #BEB8B2;
+    --momo-mustard: var(--momo-accent);
+    --momo-teal: var(--momo-accent);
+    --momo-teal-deep: #A96449;
     --momo-stub-width: 78px;
 
     position: fixed;
@@ -107,8 +107,8 @@ const ToastNotificationStyles = createGlobalStyle`
     color: var(--momo-ink);
     background: linear-gradient(
       transparent 58%,
-      rgba(255, 212, 59, 0.7) 58%,
-      rgba(255, 212, 59, 0.7) 92%,
+      rgba(192, 120, 90, 0.25) 58%,
+      rgba(192, 120, 90, 0.25) 92%,
       transparent 92%
     );
     font-size: 17px;

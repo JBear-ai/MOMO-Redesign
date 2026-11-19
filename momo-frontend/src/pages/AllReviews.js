@@ -1,12 +1,13 @@
 import { safeRequestFailure } from "../utils/safeRequestFailure";
 import SafeImage from "../components/common/SafeImage";
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import AxiosApi from "../api/AxiosApi";
 import { resolvePosterUrl } from "../utils/mediaUrl";
 
 function AllReviews() {
   const navigate = useNavigate();
+  const { movieCode } = useParams();
 
   const [reviews, setReviews] = useState([]);
   const [page, setPage] = useState(0);
@@ -24,6 +25,9 @@ function AllReviews() {
   // 영화 정보 및 리뷰 통계
   const [reviewInfo, setReviewInfo] = useState({});
 
+  // 같은 목록 화면을 재사용하되 영화가 바뀌면 첫 페이지부터 조회한다.
+  useEffect(() => { setPage(0); }, [movieCode]);
+
   // 전체 리뷰 조회
   useEffect(() => {
     const controller = new AbortController();
@@ -34,7 +38,10 @@ function AllReviews() {
         setError("");
         setReviewInfo({});
 
-        const response = await AxiosApi.allReviews(
+        // 영화명 검색은 동명 영화를 섞을 수 있어 영화 코드 전용 API를 사용한다.
+        const response = movieCode
+          ? await AxiosApi.movieReviews(movieCode, page, controller.signal)
+          : await AxiosApi.allReviews(
           page,
           controller.signal,
           activeSearch.searchType,
@@ -131,7 +138,7 @@ function AllReviews() {
     fetchReviews();
 
     return () => controller.abort();
-  }, [page, activeSearch]);
+  }, [page, activeSearch, movieCode]);
 
   // 날짜 형식 변환
   const formatDate = (dateString) => {
@@ -201,10 +208,10 @@ function AllReviews() {
       {/* 상단 소개 */}
       <section className="all-reviews-heading">
         <div>
-          <h1>모든 영화 리뷰</h1>
+          <h1>{movieCode ? "이 영화의 모든 리뷰" : "모든 영화 리뷰"}</h1>
 
           <p className="all-reviews-description">
-            영화에 대한 다양한 생각과 기록을 만나보세요.
+            {movieCode ? `영화 코드 ${movieCode}의 감상 기록을 모았습니다.` : "영화에 대한 다양한 생각과 기록을 만나보세요."}
           </p>
         </div>
       </section>
@@ -223,7 +230,7 @@ function AllReviews() {
           </span>
         </div>
 
-        <form className="all-reviews-search" onSubmit={handleSearch}>
+        {movieCode ? <Link to="/reviews">모든 영화 리뷰 보기</Link> : <form className="all-reviews-search" onSubmit={handleSearch}>
           <label
             className="all-reviews-search-label"
             htmlFor="all-reviews-search-type"
@@ -264,7 +271,7 @@ function AllReviews() {
           >
             초기화
           </button>
-        </form>
+        </form>}
 
         {loading ? (
           <div className="all-reviews-state">리뷰를 불러오는 중입니다.</div>
@@ -283,7 +290,7 @@ function AllReviews() {
                 const info = reviewInfo[review.reviewId];
                 return <article className="archive-review-row" key={review.reviewId} onClick={() => handleReviewClick(review.reviewId)}>
                   <div className="all-review-poster"><SafeImage src={resolvePosterUrl(info?.posterUrl)} alt={review.movieTitle || "영화 포스터"} fallbackClassName="all-review-poster-placeholder" /></div>
-                  <div><p className="archive-review-movie">{review.movieTitle || "알 수 없는 영화"}{review.movieYear ? ` · ${review.movieYear}` : ""}</p>
+                  <div><p className="archive-review-movie">{review.movieTitle || (movieCode ? `영화 코드 ${movieCode}` : "알 수 없는 영화")}{review.movieYear ? ` · ${review.movieYear}` : ""}</p>
                     <Link to={`/reviews/${review.reviewId}`} className="review-title-link" onClick={(event) => event.stopPropagation()}>{review.title}</Link>
                     <div className="archive-review-meta"><span>{review.nickname || "익명"}</span><time dateTime={review.createdAt}>{formatDate(review.createdAt)}</time><span>좋아요 {info?.likeCount ?? 0}</span><span>싫어요 {info?.dislikeCount ?? 0}</span><span>댓글 {info?.commentCount ?? 0}</span></div>
                   </div>

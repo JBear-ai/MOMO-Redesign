@@ -1,5 +1,6 @@
 import React from "react";
 import ArchivePagesStyles from "./styles/redesign/ArchivePages.styles";
+import CinemaCharcoalStyles from "./styles/redesign/CinemaCharcoal.styles";
 import GlobalStyles from "./styles/GlobalStyles";
 import ToastNotification from "./components/common/ToastNotification";
 
@@ -33,6 +34,7 @@ function App() {
     <BrowserRouter>
       <GlobalStyles />
       <ArchivePagesStyles />
+      <CinemaCharcoalStyles />
       <ToastNotification />
       <Routes>
         <Route element={<Layout />}>
@@ -47,6 +49,7 @@ function App() {
 
           {/* 전체 리뷰 */}
           <Route path="/reviews" element={<AllReviews />} />
+          <Route path="/reviews/movie/:movieCode" element={<AllReviews />} />
           <Route path="/profile/liked-reviews" element={<LikedReviews />} />
 
           {/* 리뷰 상세 및 댓글 */}

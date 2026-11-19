@@ -24,9 +24,9 @@ export const ChatPanel = styled.section`
   box-sizing: border-box;
   min-width: 0;
   min-height: 0;
-  border: 1px solid #d8d0c2;
+  border: 1px solid var(--momo-border);
   border-radius: 16px;
-  background: #fffdf8;
+  background: var(--momo-surface);
   box-shadow: 0 12px 36px rgba(35, 28, 18, 0.22);
 
   @media (max-width: 600px) {
@@ -40,8 +40,8 @@ export const ChatHeader = styled.header`
   align-items: center;
   justify-content: space-between;
   padding: 13px 14px;
-  color: #382d21;
-  background: #f2eadc;
+  color: var(--momo-text);
+  background: var(--momo-bg);
   cursor: move;
   user-select: none;
 `;
@@ -52,12 +52,12 @@ export const ChatHeading = styled.div`
 `;
 
 export const ConnectionStatus = styled.span`
-  color: #665b4e;
+  color: var(--momo-muted);
   font-size: 12px;
 `;
 
 export const OnlineCount = styled.span`
-  color: #493a2b;
+  color: var(--momo-text);
   font-size: 12px;
   font-weight: 700;
 `;
@@ -72,8 +72,8 @@ export const WindowActionButton = styled.button`
   height: 30px;
   border: 0;
   border-radius: 10px;
-  color: #fff;
-  background: #493a2b;
+  color: var(--momo-text);
+  background: var(--momo-surface);
   cursor: pointer;
   font-size: 20px;
   line-height: 1;
@@ -110,8 +110,8 @@ export const AvatarFallback = styled.span`
   height: 32px;
   place-items: center;
   border-radius: 50%;
-  color: #493a2b;
-  background: #e4d8c7;
+  color: var(--momo-text);
+  background: var(--momo-note);
 `;
 
 export const MessageBody = styled.div`
@@ -125,11 +125,11 @@ export const MessageMeta = styled.div`
   justify-content: ${({ $isOwn }) => ($isOwn ? "flex-end" : "flex-start")};
   gap: 7px;
   margin: 0 2px 4px;
-  color: #493a2b;
+  color: var(--momo-text);
   font-size: 12px;
 
   time {
-    color: #817568;
+    color: var(--momo-muted);
     font-size: 10px;
   }
 `;
@@ -137,7 +137,7 @@ export const MessageMeta = styled.div`
 export const DeleteButton = styled.button`
   padding: 0;
   border: 0;
-  color: #766b5e;
+  color: var(--momo-muted);
   background: transparent;
   cursor: pointer;
   font-size: 11px;
@@ -148,8 +148,8 @@ export const MessageBubble = styled.p`
   padding: 9px 12px;
   overflow-wrap: anywhere;
   border-radius: ${({ $isOwn }) => ($isOwn ? "14px 14px 4px 14px" : "14px 14px 14px 4px")};
-  color: ${({ $isOwn, $isDeleted }) => ($isDeleted ? "#887f75" : $isOwn ? "#fffdf8" : "#241f19")};
-  background: ${({ $isOwn, $isDeleted }) => ($isDeleted ? "#eeeae4" : $isOwn ? "#66513b" : "#f0e8dc")};
+  color: ${({ $isOwn, $isDeleted }) => ($isDeleted ? "var(--momo-muted)" : $isOwn ? "var(--momo-text)" : "var(--momo-text)")};
+  background: ${({ $isOwn, $isDeleted }) => ($isDeleted ? "var(--momo-note)" : $isOwn ? "var(--momo-note)" : "var(--momo-surface)")};
   line-height: 1.45;
   white-space: pre-wrap;
   font-style: ${({ $isDeleted }) => ($isDeleted ? "italic" : "normal")};
@@ -161,7 +161,7 @@ export const MessageImage = styled.img`
   max-height: 240px;
   border-radius: 12px;
   object-fit: contain;
-  background: #f0e8dc;
+  background: var(--momo-surface);
   cursor: zoom-in;
 `;
 
@@ -197,10 +197,10 @@ export const ImageModalContent = styled.img`
 export const ImageUploadButton = styled.button`
   flex: 0 0 auto;
   padding: 9px 10px;
-  border: 1px solid #d8d0c2;
+  border: 1px solid var(--momo-border);
   border-radius: 10px;
-  color: #493a2b;
-  background: #f2eadc;
+  color: var(--momo-text);
+  background: var(--momo-bg);
   cursor: pointer;
 
   &:disabled {
@@ -219,14 +219,14 @@ export const SecondaryButton = styled.button`
   padding: 8px;
   border: 0;
   border-radius: 9px;
-  color: #493a2b;
-  background: #eee5d7;
+  color: var(--momo-text);
+  background: var(--momo-note);
   cursor: pointer;
 `;
 
 export const EmptyMessage = styled.p`
   margin: 36px 0;
-  color: #766b5e;
+  color: var(--momo-muted);
   text-align: center;
 `;
 
@@ -237,14 +237,17 @@ export const MessageForm = styled.form`
   min-height: 58px;
   box-sizing: border-box;
   padding: 12px;
-  border-top: 1px solid #e4dccf;
+  border-top: 1px solid var(--momo-border);
 `;
 
 export const MessageInput = styled.input`
+  background: var(--momo-bg);
+  color: var(--momo-text);
+  &::placeholder { color: var(--momo-muted); }
   flex: 1;
   min-width: 0;
   padding: 9px 10px;
-  border: 1px solid #d8d0c2;
+  border: 1px solid var(--momo-border);
   border-radius: 10px;
 `;
 
@@ -252,8 +255,8 @@ export const SendButton = styled.button`
   padding: 9px 12px;
   border: 0;
   border-radius: 10px;
-  color: #fff;
-  background: #493a2b;
+  color: var(--momo-on-primary);
+  background: var(--momo-primary);
   cursor: pointer;
 
   &:disabled {
@@ -265,14 +268,14 @@ export const SendButton = styled.button`
 export const ErrorNotice = styled.p`
   margin: 0;
   padding: 0 12px 12px;
-  color: #a3342a;
+  color: var(--momo-error);
   font-size: 13px;
 `;
 
 export const SuccessNotice = styled.p`
   margin: 0;
   padding: 0 12px 12px;
-  color: #287348;
+  color: var(--momo-success);
   font-size: 13px;
 `;
 
@@ -293,8 +296,8 @@ export const ResizeHandle = styled.button`
     bottom: 3px;
     width: 9px;
     height: 9px;
-    border-right: 2px solid #a99d8d;
-    border-bottom: 2px solid #a99d8d;
+    border-right: 2px solid var(--momo-muted);
+    border-bottom: 2px solid var(--momo-muted);
     content: "";
   }
 
@@ -314,8 +317,8 @@ export const ChatLauncher = styled.button`
   padding: 13px 18px;
   border: 0;
   border-radius: 24px;
-  color: #fff;
-  background: #493a2b;
+  color: var(--momo-text);
+  background: var(--momo-surface);
   cursor: pointer;
 `;
 
@@ -327,14 +330,14 @@ export const UnreadBadge = styled.span`
   box-sizing: border-box;
   padding: 0 5px;
   border-radius: 10px;
-  color: #493a2b;
-  background: #f6c85f;
+  color: var(--momo-text);
+  background: var(--momo-accent);
   font-size: 12px;
   font-weight: 700;
 `;
 
 export const ConnectionIndicator = styled.span`
-  color: #f5dfbe;
+  color: var(--momo-text);
   font-size: 11px;
   font-weight: 400;
 `;

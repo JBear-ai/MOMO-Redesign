@@ -1,19 +1,23 @@
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 import { archivePageTheme } from "../redesign/ArchivePages.styles";
-import { homeRedesignTheme } from "../redesign/HomeTheme.styles";
+import { homeRedesignTheme, cinemaCharcoalTheme } from "../redesign/HomeTheme.styles";
+import { cinemaCharcoalTokens, cinemaCharcoalControls } from "../redesign/CinemaCharcoal.tokens";
 
 // 원본 테마를 남기고 홈과 지정한 리디자인 화면에서만 새 디자인 변수를 활성화한다.
 const Container = styled.div`
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f5f2eb;
-  color: #1c1a17;
+  background-color: var(--momo-bg, #303030);
+  color: var(--momo-text, #F0ECE6);
   letter-spacing: -0.01em;
 
   ${({ $homeRedesign }) => $homeRedesign && homeRedesignTheme}
   ${({ $archiveRedesign }) => $archiveRedesign && archivePageTheme}
+  ${({ $homeRedesign }) => $homeRedesign && cinemaCharcoalTheme}
+  ${({ $homeRedesign }) => !$homeRedesign && cinemaCharcoalTokens}
+  ${({ $homeRedesign }) => !$homeRedesign && cinemaCharcoalControls}
 `;
 
 // ========================================
@@ -31,7 +35,7 @@ const Header = styled.header`
   justify-content: space-between;
   gap: 24px;
   background-color: var(--home-header-bg, #ffffff);
-  border-bottom: 1px solid #e2dbd0;
+  border-bottom: 1px solid var(--home-header-border, #e2dbd0);
   box-sizing: border-box;
   box-shadow: 0 4px 20px -4px rgba(45, 38, 26, 0.03);
 `;
@@ -86,10 +90,10 @@ const UserArea = styled.div`
 
 const ActionButton = styled.button`
   padding: 8px 16px;
-  border: 1px solid #e2dbd0;
+  border: 1px solid var(--home-action-border, #e2dbd0);
   border-radius: 8px;
-  background-color: #ffffff;
-  color: #1c1a17;
+  background-color: var(--home-action-bg, #ffffff);
+  color: var(--home-action-color, #1c1a17);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -97,8 +101,8 @@ const ActionButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: #fffaec;
-    border-color: #ffd43b;
+    background-color: var(--home-action-hover, #fffaec);
+    border-color: var(--home-action-border, #ffd43b);
     transform: translateY(-1px);
   }
 
@@ -124,8 +128,8 @@ const Main = styled.main`
 const Footer = styled.footer`
   padding: var(--home-footer-padding, 44px 8%);
   background-color: var(--home-footer-bg, #efe8da);
-  color: #595042;
-  border-top: 1px solid #e2dbd0;
+  color: var(--home-footer-text, #595042);
+  border-top: 1px solid var(--home-footer-border, #e2dbd0);
   box-sizing: border-box;
   width: 100%;
 `;
@@ -139,7 +143,7 @@ const FooterContainer = styled.div`
   max-width: 1320px;
   margin: 0 auto 28px;
   padding-bottom: 28px;
-  border-bottom: 1px solid #e2dbd0;
+  border-bottom: 1px solid var(--home-footer-border, #e2dbd0);
   box-sizing: border-box;
 
   @media (max-width: 768px) {
@@ -166,17 +170,18 @@ const FooterLogo = styled.img`
   width: auto;
   height: 28px;
   object-fit: contain;
+  filter: var(--home-footer-logo-filter, none);
   flex-shrink: 0;
 `;
 
 const FooterDesc = styled.p`
   margin: 0;
-  color: #787062;
+  color: var(--home-footer-text, #787062);
   font-size: 13px;
   line-height: 1.5;
   max-width: 380px;
   word-break: keep-all;
-  border-left: 1px solid #e2dbd0;
+  border-left: 1px solid var(--home-footer-border, #e2dbd0);
   padding-left: 20px;
 
   @media (max-width: 600px) {
@@ -204,20 +209,20 @@ const FooterColumn = styled.div`
     margin: 0 0 4px;
     font-size: 13px;
     font-weight: 800;
-    color: #1c1a17;
+    color: var(--home-footer-heading, #1c1a17);
     letter-spacing: 0.05em;
     text-transform: uppercase;
   }
 
   span,
   a {
-    color: #787062;
+    color: var(--home-footer-text, #787062);
     font-size: 13px;
     text-decoration: none;
     transition: color 0.15s ease;
 
     &:hover {
-      color: #1c1a17;
+      color: var(--home-footer-heading, #1c1a17);
     }
   }
 `;
@@ -230,7 +235,7 @@ const FooterBottom = styled.div`
   justify-content: space-between;
   align-items: center;
   font-size: 12px;
-  color: #948b7c;
+  color: var(--home-footer-text, #948b7c);
   box-sizing: border-box;
 
   @media (max-width: 600px) {

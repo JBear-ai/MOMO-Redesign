@@ -870,7 +870,8 @@ function MovieDetail() {
             ),
           ),
       )),
-    React.createElement("section", { className: "detail-content-section detail-member-reviews", "data-detail-region": "reviews" }, React.createElement("h2", null, "사용자 리뷰"), reviews.length > 0
+    React.createElement("section", { className: "detail-content-section detail-member-reviews", "data-detail-region": "reviews" }, React.createElement("h2", null, "사용자 리뷰"),
+      reviewMovieCode && React.createElement(Link, { to: `/reviews/movie/${encodeURIComponent(reviewMovieCode)}` }, "전체 리뷰 보기"), reviews.length > 0
         ? React.createElement(
             "div",
             { className: "detail-review-list" },

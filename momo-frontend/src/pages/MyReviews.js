@@ -9,6 +9,7 @@ function MyReviews() {
   const [reviews, setReviews] = useState([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -34,6 +35,7 @@ function MyReviews() {
 
         setReviews(reviewList);
         setTotalPages(data.page?.totalPages ?? data.totalPages ?? 0);
+        setTotalElements(data.page?.totalElements ?? data.totalElements ?? 0);
 
         // 리뷰 정보, 통계, 포스터 수집 상태를 페이지 단위 요청으로 조회한다.
         const reviewIds = reviewList.map((review) => review.reviewId);
@@ -158,7 +160,7 @@ function MyReviews() {
             <p>내가 작성한 리뷰를 최신순으로 보여드립니다.</p>
           </div>
 
-          <span>{reviews.length}개</span>
+          <span>{totalElements}개</span>
         </div>
 
         {loading ? (

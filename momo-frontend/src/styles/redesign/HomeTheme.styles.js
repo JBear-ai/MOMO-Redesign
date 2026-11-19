@@ -45,8 +45,8 @@ export const homeRedesignTheme = css`
 
   .momo-search-form {
     min-height: 42px;
-    background: #3A3633;
-    border-color: #665B53;
+    background: var(--momo-surface);
+    border-color: var(--momo-border);
     border-radius: 8px;
   }
   .momo-search-input:focus-visible {
@@ -54,9 +54,9 @@ export const homeRedesignTheme = css`
     outline-offset: 4px;
     border-radius: 3px;
   }
-  .momo-search-input, .momo-search-button { color: #FFFFFF; }
-  .momo-search-input::placeholder { color: #D9CFC5; }
-  .momo-search-button:hover { color: #F0C9B7; }
+  .momo-search-input, .momo-search-button { color: var(--momo-text); }
+  .momo-search-input::placeholder { color: var(--momo-muted); }
+  .momo-search-button:hover { color: var(--momo-text); }
 
   .favorite-star.is-active {
     background: var(--momo-note);
@@ -77,4 +77,118 @@ export const homeRedesignTheme = css`
   ::selection { background: #E6C2AF; color: #292929; }
   input, textarea { caret-color: var(--momo-accent); }
   a, button { text-underline-offset: 4px; }
+`;
+
+// 공통 아카이브 테마는 유지하고 홈 경로에서만 Cinema Charcoal 색상 역할을 덮어쓴다.
+export const cinemaCharcoalTheme = css`
+  --momo-bg: #303030;
+  --momo-surface: #424242;
+  --momo-text: #F0ECE6;
+  --momo-muted: #C9C2BA;
+  --momo-border: #6D665F;
+  --momo-note: #514139;
+  --momo-note-border: #8D6A57;
+  --momo-accent: #C0785A;
+  --momo-accent-ink: #E4AE92;
+  --momo-primary: #C0785A;
+  --momo-primary-hover: #D38B6B;
+  --home-header-bg: #222222;
+  --home-nav-color: #C9C2BA;
+  --home-nav-active: #F0ECE6;
+  --home-header-border: #424242;
+  --home-action-bg: #424242;
+  --home-action-color: #F0ECE6;
+  --home-action-border: #6D665F;
+  --home-action-hover: #514139;
+  --home-footer-bg: #222222;
+  --home-footer-text: #C9C2BA;
+  --home-footer-heading: #F0ECE6;
+  --home-footer-border: #6D665F;
+  --home-footer-logo-filter: grayscale(1) invert(1);
+  --home-poster-bg: #424242;
+  --home-primary-text: #222222;
+  --home-carousel-bg: #424242;
+  --home-carousel-border: #A89B8F;
+  --home-carousel-ink: #F0ECE6;
+  --home-carousel-hover: #514139;
+  --home-floating-bg: #424242;
+  --home-floating-ink: #F0ECE6;
+  --home-floating-hover: #55504B;
+  --home-focus: #E4AE92;
+  --home-hero-bg: #222222;
+  --home-hero-overlay: linear-gradient(90deg, rgba(34,34,34,.94), rgba(34,34,34,.7) 60%, rgba(34,34,34,.4));
+  --home-hero-text: #F0ECE6;
+  --home-hero-muted: #C9C2BA;
+  --home-hero-accent: #E4AE92;
+  --home-hero-border: #6D665F;
+  --home-hero-hover: #424242;
+  --home-subtle-border: #5A5552;
+  --home-detail-text: #BEB8B2;
+
+  .momo-search-form, .momo-search-dropdown, .momo-search-result {
+    background: var(--momo-surface);
+    border-color: var(--momo-border);
+  }
+  .momo-search-form:focus-within {
+    border-color: var(--momo-accent);
+    box-shadow: 0 0 0 3px rgba(192,120,90,.25);
+  }
+  .momo-search-input, .momo-search-button, .momo-search-title { color: var(--momo-text); }
+  .momo-search-input::placeholder, .momo-search-meta, .momo-search-message,
+  .momo-search-poster-fallback { color: var(--momo-muted); }
+  .momo-search-button:hover { color: var(--momo-accent-ink); }
+  .momo-search-result:hover, .momo-search-result:focus-visible,
+  .momo-search-result.is-active { background: var(--momo-note); }
+  .momo-search-poster { background: var(--momo-bg); border-color: var(--momo-border); }
+  .favorite-star { background: var(--momo-surface); color: var(--momo-text); border-color: var(--momo-border); }
+  // 공유 실행 버튼의 기본 스타일은 그대로 두고 홈 안에서만 색상을 바꾼다.
+  button[aria-label="맨 위로 이동"],
+  button[aria-expanded][aria-label="공용 채팅 열기"],
+  button[aria-expanded][aria-label="채팅 닫기"] {
+    background: var(--home-floating-bg);
+    color: var(--home-floating-ink);
+    &:hover { background: var(--home-floating-hover); }
+    &:focus-visible { outline-color: var(--home-focus); }
+  }
+
+  // 제목과 주요 설명의 대비는 유지하고 날짜·반응 수 등 부가 정보만 한 단계 낮춘다.
+  section[aria-label="최근 영화 메모"] a[href^="/reviews/"] {
+    border-color: var(--home-subtle-border);
+    &:hover { border-color: var(--home-carousel-border); }
+    &:focus-visible { outline: 2px solid var(--momo-text); outline-offset: 3px; }
+    time, > div:last-child { color: var(--home-detail-text); }
+    > div:last-child { border-color: var(--home-subtle-border); }
+  }
+  section[aria-label="오늘의 박스오피스"] [role="button"] p,
+  section[aria-label="장르로 영화 찾기"] [role="button"] p {
+    color: var(--home-detail-text);
+  }
+
+  .momo-search-form { border-color: var(--home-carousel-border); }
+  .momo-search-form:focus-within {
+    border-color: var(--home-detail-text);
+    box-shadow: 0 0 0 3px rgba(190,184,178,.25);
+  }
+  .momo-search-input::placeholder, .momo-search-meta, .momo-search-message {
+    color: var(--home-detail-text);
+  }
+  .momo-search-input:focus-visible { outline-color: var(--momo-text); }
+
+  // 보조 탐색은 중립색으로 구분해 테라코타 주요 액션과 경쟁하지 않게 한다.
+  .home-favorites-more {
+    color: var(--momo-text);
+    border-color: var(--home-carousel-border);
+    &:hover { background: var(--home-subtle-border); border-color: var(--home-detail-text); }
+    &:focus-visible { outline-color: var(--momo-text); }
+  }
+  section[aria-label="최근 영화 메모"] a[href="/reviews"] {
+    color: var(--momo-text);
+    &:hover { color: var(--home-detail-text); }
+    &:focus-visible { outline-color: var(--momo-text); }
+  }
+  button[aria-label$="박스오피스 영화"] {
+    &:hover:not(:disabled) { background: var(--home-subtle-border); border-color: var(--home-detail-text); }
+    &:focus-visible { outline-color: var(--momo-text); }
+  }
+  ::selection { background: var(--momo-accent); color: #222222; }
 `;

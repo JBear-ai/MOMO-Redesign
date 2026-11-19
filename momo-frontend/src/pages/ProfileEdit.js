@@ -621,7 +621,7 @@ React.createElement(
             {
               className: "signup-message",
               style: {
-                color: !nickname ? "#888" : isNickname ? "#2e9e4f" : "#e5484d",
+                color: !nickname ? "var(--momo-muted)" : isNickname ? "var(--momo-success)" : "var(--momo-error)",
               },
             },
             !nickname
@@ -643,7 +643,7 @@ React.createElement(
             {
               className: "signup-message",
               style: {
-                color: !email ? "#888" : isEmail ? "#2e9e4f" : "#e5484d",
+                color: !email ? "var(--momo-muted)" : isEmail ? "var(--momo-success)" : "var(--momo-error)",
               },
             },
             !email
@@ -667,7 +667,7 @@ React.createElement(
             {
               style: {
                 fontSize: "13px",
-                color: "#888",
+                color: "var(--momo-muted)",
                 marginBottom: "16px",
               },
             },
@@ -693,12 +693,12 @@ React.createElement(
               className: "signup-message",
               style: {
                 color: passwordCheckError
-                  ? "#e5484d"
+                  ? "var(--momo-error)"
                   : passwordCheckResult === true
-                    ? "#2e9e4f"
+                    ? "var(--momo-success)"
                     : passwordCheckResult === false
-                      ? "#e5484d"
-                      : "#888",
+                      ? "var(--momo-error)"
+                      : "var(--momo-muted)",
               },
             },
             passwordChecking
@@ -730,12 +730,12 @@ React.createElement(
               className: "signup-message",
               style: {
                 color: !newPassword
-                  ? "#888"
+                  ? "var(--momo-muted)"
                   : isSamePassword
-                    ? "#e5484d"
+                    ? "var(--momo-error)"
                     : isPwd
-                      ? "#2e9e4f"
-                      : "#e5484d",
+                      ? "var(--momo-success)"
+                      : "var(--momo-error)",
               },
             },
             !newPassword
@@ -765,10 +765,10 @@ React.createElement(
               className: "signup-message",
               style: {
                 color: !confirmPassword
-                  ? "#888"
+                  ? "var(--momo-muted)"
                   : isPwdCheck
-                    ? "#2e9e4f"
-                    : "#e5484d",
+                    ? "var(--momo-success)"
+                    : "var(--momo-error)",
               },
             },
             !confirmPassword

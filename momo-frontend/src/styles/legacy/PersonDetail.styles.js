@@ -43,7 +43,7 @@ const PersonDetailStyles = createGlobalStyle`
   gap: 10px;
   padding: 12px;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--momo-surface);
   border: 1px solid var(--momo-border);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -54,7 +54,7 @@ const PersonDetailStyles = createGlobalStyle`
 }
 
 .movie-detail-page > .detail-content-section > .people-list > .person-chip:hover {
-  background: #ffffff;
+  background: var(--momo-surface);
   color: var(--momo-text);
   transform: translateY(-3px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -74,7 +74,7 @@ const PersonDetailStyles = createGlobalStyle`
   height: 250px;
   align-items: center;
   justify-content: center;
-  background: #f0f0f0;
+  background: var(--momo-note);
   border-radius: 6px;
   font-size: 32px;
 }
@@ -93,7 +93,7 @@ const PersonDetailStyles = createGlobalStyle`
 }
 
 .movie-detail-page > .detail-content-section > .people-list > .person-chip > div:last-child > span {
-  color: #666666;
+  color: var(--momo-muted);
   font-size: 13px;
 }
 
@@ -101,7 +101,7 @@ const PersonDetailStyles = createGlobalStyle`
   width: fit-content;
   padding-left: 0;
   border-left: 0;
-  color: #444444;
+  color: var(--momo-text);
   font-size: 13px;
 }
 
@@ -112,8 +112,8 @@ const PersonDetailStyles = createGlobalStyle`
 
 .movie-detail-page > .detail-content-section > .people-list + div > button {
   padding: 12px 24px;
-  background: #f9f9f9;
-  border: 1px solid #cccccc;
+  background: var(--momo-surface);
+  border: 1px solid var(--momo-border);
   border-radius: 6px;
   font-size: 15px;
   font-weight: 600;
@@ -122,8 +122,8 @@ const PersonDetailStyles = createGlobalStyle`
 }
 
 .movie-detail-page > .detail-content-section > .people-list + div > button:hover {
-  background: #f0f0f0;
-  border-color: #aaaaaa;
+  background: var(--momo-note);
+  border-color: var(--momo-muted);
 }
 
 @media (max-width: 600px) {

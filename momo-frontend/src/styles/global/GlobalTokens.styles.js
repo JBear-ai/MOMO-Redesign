@@ -1,28 +1,12 @@
 import { createGlobalStyle } from "styled-components";
+import { cinemaCharcoalTokens } from "../redesign/CinemaCharcoal.tokens";
 
 // MOMO 공통 디자인 토큰과 브라우저 기본 요소의 기본 스타일
 const GlobalTokensStyles = createGlobalStyle`
   :root {
-    --momo-surface: #FFFFFF;
-    --momo-bg: #F5F2EB;
-    --momo-border: #E2DBD0;
-    --momo-text: #1C1A17;
-    --momo-muted: #787062;
-    --momo-accent: #FFD43B;
-    --momo-accent-ink: #594400;
-
-    --momo-like-bg: #FFF9E6;
-    --momo-like-bg-hover: #FFF1C2;
-    --momo-like-border: #E6BF33;
-    --momo-like-text: #594400;
-    --momo-dislike-bg: #FFF1F1;
-    --momo-dislike-bg-hover: #FFE2E2;
-    --momo-dislike-border: #E7A3A3;
-    --momo-dislike-text: #A83232;
-    --momo-note: #FFFAEC;
-    --momo-note-border: #EFE6D0;
     --momo-shadow: 0 10px 30px -6px rgba(45, 38, 26, 0.08);
     --momo-radius: 14px;
+    ${cinemaCharcoalTokens}
   }
 
   html,

@@ -30,7 +30,7 @@ function SignUp() {
   const nav = useNavigate();
 
   // 입력값 유효성 검사
-  const isId = inputId.trim() !== "";
+  const isId = inputId.trim().length >= 4 && inputId.trim().length <= 20;
   const isEmail = EMAIL_REGEX.test(inputEmail);
   const isPwd = PWD_REGEX.test(inputPwd);
   const isPwdCheck = inputPwdCheck !== "" && inputPwd === inputPwdCheck;
@@ -84,6 +84,7 @@ function SignUp() {
   // 아이디 메시지
   const getIdMessage = () => {
     if (!inputId) return "";
+    if (!isId) return "아이디는 4~20자로 입력해 주세요.";
 
     switch (idStatus) {
       case "checking":
@@ -129,11 +130,11 @@ function SignUp() {
     <section className="signup-wrapper"><section className="signup-card">
       <div className="signup-card-heading"><h1>MOMO와 함께 시작해요.</h1><p>좋아하는 영화를 나만의 기록으로 남겨보세요.</p></div>
       <form onSubmit={onSubmit}>
-        <div className="signup-field"><label htmlFor="signupId">아이디</label><input id="signupId" type="text" name="id" value={inputId} placeholder="아이디를 입력해 주세요." onChange={(event) => setInputId(event.target.value)} required /><p className="signup-message" style={{ color: isIdOk ? "#287341" : "#A33030" }}>{getIdMessage()}</p></div>
-        <div className="signup-field"><label htmlFor="signupEmail">이메일</label><input id="signupEmail" type="email" name="email" value={inputEmail} placeholder="이메일을 입력해 주세요." onChange={(event) => setInputEmail(event.target.value.trim())} required /><p className="signup-message" style={{ color: isEmail ? "#287341" : "#A33030" }}>{inputEmail && (isEmail ? "올바른 이메일 형식입니다." : "이메일 형식이 올바르지 않습니다.")}</p></div>
-        <div className="signup-field"><label htmlFor="signupPassword">비밀번호</label><input id="signupPassword" type="password" name="password" value={inputPwd} placeholder="영문·숫자·특수문자 8~20자" onChange={(event) => setInputPwd(event.target.value)} required autoComplete="new-password" /><p className="signup-message" style={{ color: isPwd ? "#287341" : "#A33030" }}>{inputPwd && (isPwd ? "사용 가능한 비밀번호입니다." : "영문, 숫자, 특수문자를 포함한 8~20자로 입력하세요.")}</p></div>
-        <div className="signup-field"><label htmlFor="signupPasswordCheck">비밀번호 확인</label><input id="signupPasswordCheck" type="password" value={inputPwdCheck} placeholder="비밀번호를 다시 입력해 주세요." onChange={(event) => setInputPwdCheck(event.target.value)} required autoComplete="new-password" /><p className="signup-message" style={{ color: isPwdCheck ? "#287341" : "#A33030" }}>{inputPwdCheck && (isPwdCheck ? "비밀번호가 일치합니다." : "비밀번호가 일치하지 않습니다.")}</p></div>
-        <div className="signup-field"><label htmlFor="signupNickname">닉네임</label><input id="signupNickname" type="text" value={inputNickname} placeholder="닉네임을 입력해 주세요." onChange={(event) => setInputNickname(event.target.value.trim())} required /><p className="signup-message" style={{ color: isNickname ? "#287341" : "#A33030" }}>{inputNickname && (isNickname ? "사용 가능한 닉네임입니다." : "한글, 영문, 숫자로 2~12자 입력하세요.")}</p></div>
+        <div className="signup-field"><label htmlFor="signupId">아이디</label><input id="signupId" type="text" name="id" value={inputId} placeholder="아이디를 입력해 주세요." onChange={(event) => setInputId(event.target.value)} required /><p className="signup-message" style={{ color: isIdOk ? "var(--momo-success)" : "var(--momo-error)" }}>{getIdMessage()}</p></div>
+        <div className="signup-field"><label htmlFor="signupEmail">이메일</label><input id="signupEmail" type="email" name="email" value={inputEmail} placeholder="이메일을 입력해 주세요." onChange={(event) => setInputEmail(event.target.value.trim())} required /><p className="signup-message" style={{ color: isEmail ? "var(--momo-success)" : "var(--momo-error)" }}>{inputEmail && (isEmail ? "올바른 이메일 형식입니다." : "이메일 형식이 올바르지 않습니다.")}</p></div>
+        <div className="signup-field"><label htmlFor="signupPassword">비밀번호</label><input id="signupPassword" type="password" name="password" value={inputPwd} placeholder="영문·숫자·특수문자 8~20자" onChange={(event) => setInputPwd(event.target.value)} required autoComplete="new-password" /><p className="signup-message" style={{ color: isPwd ? "var(--momo-success)" : "var(--momo-error)" }}>{inputPwd && (isPwd ? "사용 가능한 비밀번호입니다." : "영문, 숫자, 특수문자를 포함한 8~20자로 입력하세요.")}</p></div>
+        <div className="signup-field"><label htmlFor="signupPasswordCheck">비밀번호 확인</label><input id="signupPasswordCheck" type="password" value={inputPwdCheck} placeholder="비밀번호를 다시 입력해 주세요." onChange={(event) => setInputPwdCheck(event.target.value)} required autoComplete="new-password" /><p className="signup-message" style={{ color: isPwdCheck ? "var(--momo-success)" : "var(--momo-error)" }}>{inputPwdCheck && (isPwdCheck ? "비밀번호가 일치합니다." : "비밀번호가 일치하지 않습니다.")}</p></div>
+        <div className="signup-field"><label htmlFor="signupNickname">닉네임</label><input id="signupNickname" type="text" value={inputNickname} placeholder="닉네임을 입력해 주세요." onChange={(event) => setInputNickname(event.target.value.trim())} required /><p className="signup-message" style={{ color: isNickname ? "var(--momo-success)" : "var(--momo-error)" }}>{inputNickname && (isNickname ? "사용 가능한 닉네임입니다." : "한글, 영문, 숫자로 2~12자 입력하세요.")}</p></div>
         <button type="submit" className="signup-submit" disabled={!isAllValid}>회원가입</button>
       </form>
       <div className="signup-footer"><span>이미 계정이 있으신가요?</span><Link to="/login">로그인</Link></div>
