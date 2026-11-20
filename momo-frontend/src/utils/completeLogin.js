@@ -17,6 +17,7 @@ export const completeLogin = (data, fallbackLoginId = "") => {
   sessionStorage.removeItem(KAKAO_STATE_KEY);
   sessionStorage.removeItem("momo-naver-login-state");
   sessionStorage.removeItem("momo-google-login-state");
+  ["kakao", "naver", "google"].forEach(provider => sessionStorage.removeItem(`momo-${provider}-login-session`));
   storeLoginTokens(data.accessToken, data.refreshToken);
   window.dispatchEvent(new CustomEvent("momo-toast", { detail: { nickname } }));
   return nickname;

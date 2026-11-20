@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AxiosApi from "../api/AxiosApi";
 import { completeLogin } from "../utils/completeLogin";
-import { prepareKakaoLogin } from "../auth/kakaoFlow";
 import { prepareSocialLogin, socialProviderName } from "../auth/socialOAuthFlow";
 import kakaoLogo from "../assets/oauth/kakao.svg";
 import naverLogo from "../assets/oauth/naver.png";
@@ -15,16 +14,15 @@ function Login() {
   const [inputId, setInputId] = useState("");
   const [inputPwd, setInputPwd] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isKakaoLoading, setIsKakaoLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState("");
-  const [kakaoError, setKakaoError] = useState("");
+  const [socialError, setSocialError] = useState("");
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   const navigate = useNavigate();
 
   // 아이디와 비밀번호 입력 여부 확인
-  const isValid = inputId.trim() !== "" && inputPwd !== "" && !isLoading && !isKakaoLoading && !socialLoading;
+  const isValid = inputId.trim() !== "" && inputPwd !== "" && !isLoading && !socialLoading;
 
   // 로그인 요청
   const onSubmit = async (event) => {
@@ -59,26 +57,14 @@ function Login() {
   };
 
   // 일반 로그인과 동시 제출하지 않고 서버가 발급한 state·바인딩 쿠키로 인증을 시작한다.
-  const onKakaoLogin = async () => {
-    if (isLoading || isKakaoLoading || socialLoading) return;
-    setIsKakaoLoading(true); setKakaoError("");
-    try {
-      const url = await prepareKakaoLogin();
-      if (mounted.current) window.location.assign(url);
-    } catch (error) {
-      if (mounted.current) setKakaoError(error?.response?.data?.message || "카카오 로그인에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.");
-    } finally { if (mounted.current) setIsKakaoLoading(false); }
-  };
-
-  // 공급자별 시작 API만 구분하고 성공 이후에는 공통 콜백·JWT 저장 경로를 사용한다.
   const onSocialLogin = async provider => {
-    if (isLoading || isKakaoLoading || socialLoading) return;
-    setSocialLoading(provider); setKakaoError("");
+    if (isLoading || socialLoading) return;
+    setSocialLoading(provider); setSocialError("");
     try {
       const url = await prepareSocialLogin(provider);
       if (mounted.current) window.location.assign(url);
     } catch (error) {
-      if (mounted.current) setKakaoError(error?.response?.data?.message || `${socialProviderName(provider)} 로그인에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.`);
+      if (mounted.current) setSocialError(error?.response?.data?.message || `${socialProviderName(provider)} 로그인에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.`);
     } finally { if (mounted.current) setSocialLoading(""); }
   };
 
@@ -92,17 +78,17 @@ function Login() {
       </form>
       <SocialLoginArea aria-label="소셜 로그인">
         <p>또는 소셜 계정으로 시작하기</p>
-        <KakaoLoginButton type="button" data-provider="kakao" onClick={onKakaoLogin} disabled={isLoading || isKakaoLoading || !!socialLoading} aria-busy={isKakaoLoading}>
+        <KakaoLoginButton type="button" data-provider="kakao" onClick={() => onSocialLogin("kakao")} disabled={isLoading || !!socialLoading} aria-busy={socialLoading === "kakao"}>
           <img src={kakaoLogo} alt="" aria-hidden="true" />
-          {isKakaoLoading ? "카카오 연결 중..." : "카카오로 로그인"}
+          {socialLoading === "kakao" ? "카카오 연결 중..." : "카카오로 로그인"}
         </KakaoLoginButton>
-        <NaverLoginButton type="button" data-provider="naver" onClick={() => onSocialLogin("naver")} disabled={isLoading || isKakaoLoading || !!socialLoading} aria-busy={socialLoading === "naver"}>
+        <NaverLoginButton type="button" data-provider="naver" onClick={() => onSocialLogin("naver")} disabled={isLoading || !!socialLoading} aria-busy={socialLoading === "naver"}>
           <img src={naverLogo} alt="" aria-hidden="true" />{socialLoading === "naver" ? "네이버 연결 중..." : "네이버로 로그인"}
         </NaverLoginButton>
-        <GoogleLoginButton type="button" data-provider="google" onClick={() => onSocialLogin("google")} disabled={isLoading || isKakaoLoading || !!socialLoading} aria-busy={socialLoading === "google"}>
+        <GoogleLoginButton type="button" data-provider="google" onClick={() => onSocialLogin("google")} disabled={isLoading || !!socialLoading} aria-busy={socialLoading === "google"}>
           <img src={googleLogo} alt="" aria-hidden="true" />{socialLoading === "google" ? "구글 연결 중..." : "Google 계정으로 로그인"}
         </GoogleLoginButton>
-        {kakaoError && <p role="alert">{kakaoError}</p>}
+        {socialError && <p role="alert">{socialError}</p>}
       </SocialLoginArea>
       <div className="signup-footer"><span>아직 계정이 없으신가요?</span><Link to="/signup">회원가입</Link></div>
     </section></section>

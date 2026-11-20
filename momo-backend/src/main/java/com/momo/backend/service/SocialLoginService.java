@@ -1,12 +1,10 @@
 package com.momo.backend.service;
 
-import com.momo.backend.dto.auth.KakaoUserInfo;
 import com.momo.backend.dto.auth.SocialUserInfo;
 import com.momo.backend.dto.auth.LoginResponse;
 import com.momo.backend.entity.AuthProvider;
 import com.momo.backend.entity.User;
 import com.momo.backend.repository.UserRepository;
-import com.momo.backend.security.TokenProvider;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,29 +17,19 @@ import java.util.UUID;
 
 // 외부 인증을 마친 소셜 계정을 기존 회원·JWT·Refresh Token 저장 구조에 연결한다.
 @Service
-public class KakaoLoginService {
+public class SocialLoginService {
     private final UserRepository users;
     private final PasswordEncoder passwords;
-    private final TokenProvider tokens;
-    private final RefreshTokenService refreshTokens;
+    private final LoginSessionService sessions;
     private final TransactionTemplate transaction;
 
-    public KakaoLoginService(UserRepository users, PasswordEncoder passwords, TokenProvider tokens,
-                             RefreshTokenService refreshTokens, PlatformTransactionManager manager) {
+    public SocialLoginService(UserRepository users, PasswordEncoder passwords, LoginSessionService sessions,
+                             PlatformTransactionManager manager) {
         this.users = users;
         this.passwords = passwords;
-        this.tokens = tokens;
-        this.refreshTokens = refreshTokens;
+        this.sessions = sessions;
         transaction = new TransactionTemplate(manager);
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-    }
-
-    // 외부 HTTP 호출은 이 메서드 전에 끝내 DB 트랜잭션 중 외부 서버를 기다리지 않는다.
-    public LoginResponse login(KakaoUserInfo info) {
-        if (info == null || info.id() == null || !info.id().matches("[1-9][0-9]{0,19}")) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "카카오 회원 식별정보가 올바르지 않습니다.");
-        }
-        return login(AuthProvider.KAKAO, new SocialUserInfo(info.id(), info.nickname(), info.email()));
     }
 
     // 검증된 소셜 ID만 받아 기존 숫자 회원 PK와 JWT 발급·회전 정책을 공급자 공통으로 재사용한다.
@@ -55,11 +43,7 @@ public class KakaoLoginService {
                 return transaction.execute(status -> {
                     User user = users.findByProviderAndProviderId(provider, info.id())
                             .orElseGet(() -> createUser(provider, info));
-                    String access = tokens.createToken(user.getUserId());
-                    String refresh = tokens.createRefreshToken(user.getUserId());
-                    // 기존 회원 잠금·계정당 한 개 저장·해시 정책과 동일한 서비스를 사용한다.
-                    refreshTokens.saveOrReplace(user, refresh);
-                    return new LoginResponse(user, access, refresh);
+                    return sessions.issue(user);
                 });
             } catch (DataIntegrityViolationException duplicate) {
                 // 동시 최초 로그인은 unique 제약으로 하나만 생성한다. 롤백 후 새 트랜잭션에서 승자를 재조회한다.

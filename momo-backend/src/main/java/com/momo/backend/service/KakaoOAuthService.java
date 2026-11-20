@@ -1,13 +1,12 @@
 package com.momo.backend.service;
 
-import com.momo.backend.dto.auth.KakaoUserInfo;
+import com.momo.backend.dto.auth.SocialUserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestClient;
@@ -26,26 +25,50 @@ public class KakaoOAuthService {
     private final String clientId;
     private final String clientSecret;
     private final String redirectUri;
+    private final String adminKey;
 
     @Autowired
     public KakaoOAuthService(@Value("${kakao.client-id:}") String clientId,
                              @Value("${kakao.client-secret:}") String clientSecret,
-                             @Value("${kakao.redirect-uri:}") String redirectUri) {
-        this(httpClient(), clientId, clientSecret, redirectUri);
+                             @Value("${kakao.redirect-uri:}") String redirectUri,
+                             @Value("${kakao.admin-key:${KAKAO_ADMIN_KEY:}}") String adminKey) {
+        this(OAuthHttpSupport.client(), clientId, clientSecret, redirectUri, adminKey);
     }
 
     KakaoOAuthService(RestClient client, String clientId, String clientSecret, String redirectUri) {
+        this(client, clientId, clientSecret, redirectUri, "");
+    }
+
+    KakaoOAuthService(RestClient client, String clientId, String clientSecret, String redirectUri, String adminKey) {
         this.client = client;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.redirectUri = redirectUri;
+        this.adminKey = adminKey;
     }
 
-    private static RestClient httpClient() {
-        var factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5000);
-        factory.setReadTimeout(10000);
-        return RestClient.builder().requestFactory(factory).build();
+    /** 서버 DB에서 얻은 대상만 해제한다. 다른 ID 응답·모호한 오류는 성공으로 취급하지 않는다. */
+    public void unlink(String providerId) {
+        if (adminKey == null || adminKey.isBlank()) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "카카오 연결 해제 환경설정이 필요합니다.");
+        if (providerId == null || !providerId.matches("[1-9][0-9]{0,19}")) throw new IllegalArgumentException("카카오 회원 식별정보가 올바르지 않습니다.");
+        var form = new LinkedMultiValueMap<String, String>();
+        form.add("target_id_type", "user_id"); form.add("target_id", providerId);
+        try {
+            var response = client.post().uri("https://kapi.kakao.com/v1/user/unlink")
+                    .header(HttpHeaders.AUTHORIZATION, "KakaoAK " + adminKey)
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED).body(form).retrieve().body(MAP);
+            if (response == null || !providerId.equals(String.valueOf(response.get("id"))))
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "카카오 연결 해제 결과를 확인할 수 없습니다. MOMO 탈퇴는 완료되지 않았습니다.");
+        } catch (RestClientResponseException error) {
+            // 공식 -101은 해당 앱에 연결되지 않은 회원이다. 다른 4xx나 유사 코드는 성공으로 확대하지 않는다.
+            if (error.getStatusCode().value() == 400) {
+                try {
+                    var body = error.getResponseBodyAs(Map.class);
+                    if (body != null && body.get("code") instanceof Number code && code.intValue() == -101) return;
+                } catch (Exception ignored) { /* 해석 불가 응답은 아래 실패 처리로 전달한다. */ }
+            }
+            throw OAuthHttpSupport.unlinkFailure(error);
+        } catch (RestClientException error) { throw OAuthHttpSupport.unlinkFailure(error); }
     }
 
     // 인가 요청과 토큰 교환 모두 서버의 동일한 Redirect URI를 사용해 임의 콜백 변경을 막는다.
@@ -63,7 +86,7 @@ public class KakaoOAuthService {
     }
 
     // 인가 코드는 한 번만 교환한다. 외부 토큰·원문 오류·요청 본문을 로그나 예외에 남기지 않는다.
-    public KakaoUserInfo authenticate(String code) {
+    public SocialUserInfo authenticate(String code) {
         requireConfiguration();
         if (code == null || code.isBlank() || code.length() > 2048) throw unauthorized();
         var form = new LinkedMultiValueMap<String, String>();
@@ -89,15 +112,8 @@ public class KakaoOAuthService {
                     && address.matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")
                     && Boolean.TRUE.equals(account.get("is_email_valid")) && Boolean.TRUE.equals(account.get("is_email_verified"))
                     ? address : null;
-            return new KakaoUserInfo(id, nickname, email);
-        } catch (RestClientResponseException error) {
-            if (error.getStatusCode().is5xxServerError() || error.getStatusCode().value() == 429) {
-                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "카카오 인증 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.");
-            }
-            throw unauthorized();
-        } catch (RestClientException error) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "카카오 인증 응답을 처리하지 못했습니다.");
-        }
+            return new SocialUserInfo(id, nickname, email);
+        } catch (RestClientException error) { throw OAuthHttpSupport.authenticationFailure(error); }
     }
 
     private void requireConfiguration() {

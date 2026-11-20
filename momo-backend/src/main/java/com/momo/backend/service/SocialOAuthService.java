@@ -2,12 +2,13 @@ package com.momo.backend.service;
 
 import com.momo.backend.dto.auth.OAuthRequestContext;
 import com.momo.backend.dto.auth.SocialUserInfo;
+import com.momo.backend.dto.auth.OAuthPurpose;
+import com.momo.backend.dto.auth.OAuthAuthenticationResult;
 import com.momo.backend.entity.AuthProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.*;
@@ -35,15 +36,10 @@ public class SocialOAuthService {
             @Value("${naver.oauth.client-id:}") String ni, @Value("${naver.oauth.client-secret:}") String ns,
             @Value("${naver.oauth.redirect-uri:}") String nr, @Value("${google.oauth.client-id:}") String gi,
             @Value("${google.oauth.client-secret:}") String gs, @Value("${google.oauth.redirect-uri:}") String gr) {
-        this(httpClient(), google, Map.of(AuthProvider.NAVER, new Settings(ni, ns, nr), AuthProvider.GOOGLE, new Settings(gi, gs, gr)));
+        this(OAuthHttpSupport.client(), google, Map.of(AuthProvider.NAVER, new Settings(ni, ns, nr), AuthProvider.GOOGLE, new Settings(gi, gs, gr)));
     }
     SocialOAuthService(RestClient client, GoogleIdentityVerifier google, Map<AuthProvider, Settings> settings) {
         this.client = client; this.google = google; this.settings = settings;
-    }
-    private static RestClient httpClient() {
-        var factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5000); factory.setReadTimeout(10000);
-        return RestClient.builder().requestFactory(factory).build();
     }
 
     // 콜백 주소는 서버 설정만 사용하며 Google nonce·PKCE 값을 브라우저 입력으로 덮어쓰지 못하게 한다.
@@ -57,12 +53,26 @@ public class SocialOAuthService {
             url.queryParam("scope", "openid email profile").queryParam("nonce", context.nonce())
                     .queryParam("code_challenge_method", "S256").queryParam("code_challenge", challenge(context.codeVerifier()));
         }
+        if (context.purpose() == OAuthPurpose.DELETE) {
+            // 계정 선택·재동의는 Google 비밀번호 재입력 강제를 의미하지 않는다.
+            if (provider == AuthProvider.NAVER) url.queryParam("auth_type", "reauthenticate");
+            else url.queryParam("prompt", "select_account");
+        }
         return url.build().encode().toUriString();
     }
     public boolean secureRedirect(AuthProvider provider) { return URI.create(configuration(provider).redirect()).getScheme().equalsIgnoreCase("https"); }
 
     // state가 소비된 후 호출되며 인가 코드 교환은 자동 재시도하지 않는다. 외부 오류 원문도 노출하지 않는다.
     public SocialUserInfo authenticate(AuthProvider provider, String code, OAuthRequestContext context) {
+        return authenticateResult(provider, code, context, false).identity();
+    }
+
+    /** 기존 신원 검증을 그대로 거친 뒤 탈퇴에 필요한 토큰만 일시 반환한다. */
+    public OAuthAuthenticationResult authenticateForDeletion(AuthProvider provider, String code, OAuthRequestContext context) {
+        return authenticateResult(provider, code, context, true);
+    }
+
+    private OAuthAuthenticationResult authenticateResult(AuthProvider provider, String code, OAuthRequestContext context, boolean deleting) {
         var s = configuration(provider);
         if (code == null || code.isBlank() || code.length() > 2048) throw denied();
         var form = new LinkedMultiValueMap<String, String>();
@@ -76,21 +86,35 @@ public class SocialOAuthService {
             if (token == null || token.containsKey("error")) throw denied();
             if (provider == AuthProvider.GOOGLE) {
                 if (!(token.get("id_token") instanceof String idToken)) throw denied();
-                return google.verify(idToken, s.clientId(), context.nonce());
+                var identity = google.verify(idToken, s.clientId(), context.nonce());
+                String access = token.get("access_token") instanceof String value ? value : null;
+                if (deleting && (access == null || access.isBlank())) throw denied();
+                return new OAuthAuthenticationResult(identity, deleting ? access : null);
             }
             if (!(token.get("access_token") instanceof String access) || access.isBlank()) throw denied();
             var user = client.get().uri("https://openapi.naver.com/v1/nid/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + access).retrieve().body(MAP);
             if (user == null || !"00".equals(user.get("resultcode")) || !(user.get("response") instanceof Map<?, ?> profile)
                     || !(profile.get("id") instanceof String id) || id.isBlank() || id.length() > 255
                     || id.chars().anyMatch(Character::isISOControl)) throw denied();
-            return new SocialUserInfo(id, profile.get("nickname") instanceof String name ? name : "네이버회원", email(profile.get("email")));
-        } catch (RestClientResponseException e) {
-            if (e.getStatusCode().is5xxServerError() || e.getStatusCode().value() == 429)
-                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "소셜 인증 서버가 응답하지 않습니다. 잠시 후 다시 시도해 주세요.");
-            throw denied();
-        } catch (RestClientException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "소셜 인증 응답을 처리하지 못했습니다.");
+            return new OAuthAuthenticationResult(new SocialUserInfo(id, profile.get("nickname") instanceof String name ? name : "네이버회원", email(profile.get("email"))), deleting ? access : null);
+        } catch (RestClientException error) { throw OAuthHttpSupport.authenticationFailure(error); }
+    }
+
+    /** 신규 Access Token만 사용하고 성공 응답 뒤 공급자 토큰을 보관하지 않는다. */
+    public void unlink(AuthProvider provider, String accessToken) {
+        var s = configuration(provider);
+        if (accessToken == null || accessToken.isBlank()) throw denied();
+        var form = new LinkedMultiValueMap<String, String>();
+        if (provider == AuthProvider.NAVER) {
+            form.add("client_id", s.clientId()); form.add("client_secret", s.secret());
         }
+        form.add("token", accessToken);
+        if (provider == AuthProvider.NAVER) form.add("token_type_hint", "access_token");
+        try {
+            var response = client.post().uri(provider == AuthProvider.NAVER ? "https://nid.naver.com/oauth2.0/revoke" : "https://oauth2.googleapis.com/revoke")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED).body(form).retrieve().toBodilessEntity();
+            if (response.getStatusCode().value() != 200) throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "외부 연결 해제 결과를 확인할 수 없습니다. MOMO 탈퇴는 완료되지 않았습니다.");
+        } catch (RestClientException error) { throw OAuthHttpSupport.unlinkFailure(error); }
     }
     static String email(Object value) {
         return value instanceof String e && e.length() <= 254 && e.matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+") ? e : null;

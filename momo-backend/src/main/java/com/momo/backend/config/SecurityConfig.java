@@ -80,6 +80,11 @@ public class SecurityConfig {
                                                 // WebSocket handshake는 공개하고 첫 프레임에서 Access Token을 검증한다.
                                                 .requestMatchers("/ws/chat").permitAll()
 
+                                                // 소셜 탈퇴는 기존 공개 로그인 경로와 달리 MOMO JWT가 반드시 필요하다.
+                                                .requestMatchers(HttpMethod.POST,
+                                                                "/api/auth/*/delete/authorize",
+                                                                "/api/auth/*/delete/complete").authenticated()
+
                                                 // 회원가입, 로그인, 토큰 재발급 허용
                                                 .requestMatchers(
                                                                 HttpMethod.POST,

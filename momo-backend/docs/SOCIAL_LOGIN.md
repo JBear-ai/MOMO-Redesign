@@ -20,7 +20,7 @@
 교환 본문은 `{ code, state }`이며 응답은 기존 LoginResponse의
 `userId, loginId, nickname, profileImage, accessToken, refreshToken, tokenType`을 유지한다.
 외부 공급자의 토큰은 반환하지 않는다. React는 기존 completeLogin을 통해 MOMO 토큰만 저장한다.
-요청/응답 형식이 같은 기존 KakaoLoginRequest/KakaoAuthorizeResponse DTO를 재사용하며 이름 변경은 하지 않았다.
+공통 DTO는 OAuthLoginRequest/OAuthAuthorizeResponse로 정리했다. LoginResponse에는 기존 필드를 유지하며 provider를 추가한다. 현재 소셜 프로필·자동 탈퇴 및 검증 결과는 [구조 개선 안내](OAUTH_IMPROVEMENT.md)를 따른다.
 
 ## 환경설정과 콘솔
 
@@ -62,7 +62,7 @@ Client Secret·Google 인증 JSON은 React에 넣지 않는다. 프로젝트 루
 JPA의 length=255만으로 MySQL 대소문자 구분이 자동 설정되는 것은 아니다.
 새 DB라면 기존 카카오 스키마 준비 후 이 SQL도 적용한다. 개발 DB에 테스트용 회원을 자동 생성하지 않는다.
 
-## 검증
+## 이전 연동 작업의 검증 기록 (2026-11-19)
 
 실행 결과 상세는 프로젝트 외부 `MOMO_Naver_Google_20261119` 폴더에 보관한다.
 - Gradle 전체 build: 성공. JUnit 312개 중 299개 성공, 실패 0, 건너뜀 13.

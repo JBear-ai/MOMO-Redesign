@@ -47,6 +47,28 @@ class SocialOAuthServiceTest {
   assertEquals("subject",service.authenticate(AuthProvider.GOOGLE,"code",context).id());
   verify(verifier).verify("signed-identity","google-id","test-nonce");server.verify();
  }
+ @Test void deletionPreservesPkceAndNonceValidationAndRequiresAccessToken() {
+  var builder=RestClient.builder();var server=MockRestServiceServer.bindTo(builder).build();var verifier=mock(GoogleIdentityVerifier.class);
+  var service=new SocialOAuthService(builder.build(),verifier,settings());
+  var deletion = new com.momo.backend.dto.auth.OAuthRequestContext(context.state(),context.nonce(),context.codeVerifier(),
+    com.momo.backend.dto.auth.OAuthPurpose.DELETE,AuthProvider.GOOGLE,41L);
+  server.expect(requestTo("https://oauth2.googleapis.com/token"))
+    .andExpect(content().string(org.hamcrest.Matchers.containsString("code_verifier="+context.codeVerifier())))
+    .andRespond(withSuccess("{\"id_token\":\"signed-identity\",\"access_token\":\"ephemeral\"}",MediaType.APPLICATION_JSON));
+  when(verifier.verify("signed-identity","google-id","test-nonce")).thenReturn(new com.momo.backend.dto.auth.SocialUserInfo("subject","표본",null));
+  var result=service.authenticateForDeletion(AuthProvider.GOOGLE,"code",deletion);
+  assertEquals("subject",result.identity().id()); assertEquals("ephemeral",result.accessToken());
+  assertFalse(result.toString().contains("ephemeral"));
+  assertFalse(new tools.jackson.databind.ObjectMapper().writeValueAsString(result).contains("ephemeral"));
+  verify(verifier).verify("signed-identity","google-id","test-nonce");server.verify();
+ }
+ @Test void deletionCannotRevokeAnIdTokenWhenAccessTokenIsMissing() {
+  var builder=RestClient.builder();var server=MockRestServiceServer.bindTo(builder).build();var verifier=mock(GoogleIdentityVerifier.class);
+  var service=new SocialOAuthService(builder.build(),verifier,settings());
+  server.expect(requestTo("https://oauth2.googleapis.com/token")).andRespond(withSuccess("{\"id_token\":\"identity\"}",MediaType.APPLICATION_JSON));
+  when(verifier.verify("identity","google-id","test-nonce")).thenReturn(new com.momo.backend.dto.auth.SocialUserInfo("subject","표본",null));
+  assertThrows(ResponseStatusException.class,()->service.authenticateForDeletion(AuthProvider.GOOGLE,"code",context));server.verify();
+ }
  @Test void providerFailureDoesNotExposeSecretOrBody() {
   var builder=RestClient.builder();var server=MockRestServiceServer.bindTo(builder).build();
   var service=new SocialOAuthService(builder.build(),new GoogleIdentityVerifier(),settings());
