@@ -57,7 +57,8 @@ class ReviewSummaryServiceTest {
                 movieRepository,
                 commentRepository,
                 reactionRepository,
-                mock(CommentReactionRepository.class)
+                mock(CommentReactionRepository.class),
+                mock(com.momo.backend.client.RagClient.class)
         );
 
         var result = service.getReviewSummaries(List.of(11L, 12L, 11L));
@@ -90,7 +91,8 @@ class ReviewSummaryServiceTest {
                 mock(MovieRepository.class),
                 mock(CommentRepository.class),
                 mock(ReviewReactionRepository.class),
-                mock(CommentReactionRepository.class)
+                mock(CommentReactionRepository.class),
+                mock(com.momo.backend.client.RagClient.class)
         );
 
         assertThrows(

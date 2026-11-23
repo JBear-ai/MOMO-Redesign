@@ -35,7 +35,8 @@ class ReviewServiceDuplicateCreateTest {
                 mock(MovieRepository.class),
                 mock(CommentRepository.class),
                 mock(ReviewReactionRepository.class),
-                mock(CommentReactionRepository.class)
+                mock(CommentReactionRepository.class),
+                mock(com.momo.backend.client.RagClient.class)
         );
 
         ReviewCreateRequest request = mock(ReviewCreateRequest.class);
