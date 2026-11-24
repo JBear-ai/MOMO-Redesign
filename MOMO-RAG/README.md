@@ -1,7 +1,8 @@
-# MOMO RAG — 1~3차시
+# MOMO RAG — 1~4차시
 
 리뷰를 청킹하고 문자 2-gram 겹침 비율로 검색하는 메모리 StubEngine이다.
 임베딩·벡터 DB·LLM 답변은 구현하지 않는다.
+4차시는 LangGraph로 검색·재작성·답변 보류를 분기하고, 검색된 리뷰의 일부를 모의 답변으로 반환한다.
 로컬 `D:/Dev/Ai/rag-ai-service`의 수정본과 강사님 Spring RestClient 예제를 참고했다.
 참고 저장소 자체는 수정하지 않았다.
 
@@ -9,7 +10,7 @@
 
 Python 3.14.5와 프로젝트 `.venv`를 사용한다. PyCharm에서 기존 인터프리터로
 `MOMO-RAG/.venv/Scripts/python.exe`를 선택한다. Anaconda pip와 혼용하지 않는다.
-이미 준비한 환경에서는 재설치하지 않아도 된다.
+1~3차시 환경에는 추가된 LangGraph를 설치해야 하므로 아래 requirements 설치를 실행한다.
 
 저장소 루트의 PowerShell에서:
 
@@ -39,11 +40,16 @@ Spring의 환경변수 또는 기존 설정 import로 주입한다. 두 서비�
 
 - `GET /health`: 설정·엔진 초기화 후 공개 상태 응답.
 - `POST /index`: 인증 필요. `review_id`, `movie_code`, `title`, `content` → `review_id`, `chunks`.
-- `DELETE /index/{board_id}`: 인증 필요. 경로 board_id는 MOMO reviewId. 응답 `review_id`, `deleted`.
-- `POST /query`: 인증 필요. `question`, `board_ids`(리뷰 ID 허용 목록), `top_k`를 받지만 항상 4차시 대기 응답이다.
+- `DELETE /index/{review_id}`: 인증 필요. 기존과 같은 URL이며 응답은 `review_id`, `deleted`.
+- `POST /query`: 인증 필요. `question`, `review_ids`(리뷰 ID 허용 목록), `top_k`를 받는다. 기존 `board_ids` 입력도 호환하며 둘 다 있으면 `review_ids`가 우선한다.
+- 질의 응답은 `answer`, `abstained`, `sources`, `trace`이다. 출처는 `review_id`, `title`, `snippet`, `score`만 포함하며 같은 리뷰는 최고 점수 청크 하나로 정리한다.
 - 작성자 이메일·닉네임·MOMO JWT는 Python에 전달하지 않는다.
 - `engine.py`: 청킹·동일 ID 교체·삭제·최소 점수 검색. 제목을 각 청크에 붙이고 허용 ID만 검색한다.
-- `graph.py`: 4차시 `build_graph`/`run_graph` 연결 위치. 영화별 허용 ID 계산과 Spring의 질의 호출은 후속 작업이다.
+- `graph.py`: `retrieve → grade → generate / rewrite / abstain → format`을 실행한다. 재작성하면 `retrieve`로 돌아가며 `trace`에 실제 노드 순서가 누적된다.
+
+Python 설정 `MAX_REWRITES`는 기본 1이며 0 또는 1만 허용한다. 최초 검색을 포함해 최대 2회 검색한다.
+빈 허용 목록에서는 검색·재작성 없이 보류한다. `grade`는 엔진이 이미 적용한 점수 임계값을 다시 계산하지 않는다.
+그래프 초기화 실패 시 색인·삭제는 계속 제공하고 `/query`는 503을 반환한다. 질의 실행 오류는 내부 내용 없이 500을 반환한다.
 
 ## Spring 연동과 실패 정책
 
@@ -68,7 +74,7 @@ H2 스키마·회원·리뷰와 FastAPI 프로세스는 종료 시 폐기된다.
 
 ```powershell
 # 저장소 루트: Python 검증, DB 접근 없음
-.\MOMO-RAG\.venv\Scripts\python.exe -B -m unittest discover -s MOMO-RAG -p test_rag.py
+.\MOMO-RAG\.venv\Scripts\python.exe -B -m unittest discover -s MOMO-RAG -p 'test_*.py'
 
 # 설치된 Java 21을 현재 셸에서 지정
 $env:JAVA_HOME='C:\Users\admin\.jdks\corretto-21.0.12.1'
@@ -89,10 +95,10 @@ FastAPI 접근 로그는 추적 제외된 `momo-backend/build/rag-live-fastapi.l
 - 단일 프로세스 메모리 색인이다. 재시작 시 사라지고 여러 worker 사이에 공유되지 않으므로 기본 1 worker를 사용한다.
 - 실패·동시 수정의 전송 순서 역전·프로세스 종료에 대한 자동 복구나 최신성 보장은 없다.
 - 회원 탈퇴 등 ReviewService를 거치지 않는 일괄 삭제는 색인에 반영하지 않는다.
-- 전체 초기 색인·운영 검색 API·React AI UI·LangGraph·Atlas·OpenAI는 구현하지 않았다.
+- 전체 초기 색인·Spring 질의 API·React AI UI·Atlas·OpenAI는 구현하지 않았다.
 - 후속 질의에서 Spring이 현재 영화의 허용 리뷰 ID를 계산해야 한다. movie_code 필드만으로 범위/권한이 자동 보장되지 않는다.
 
-## 이번 실행 결과 (2026-11-23)
+## 1~3차시 당시 실행 결과 (2026-11-23)
 
 | 구분 | 결과 |
 |---|---|
