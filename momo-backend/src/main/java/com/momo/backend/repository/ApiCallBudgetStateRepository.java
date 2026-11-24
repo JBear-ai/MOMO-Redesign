@@ -12,13 +12,15 @@ public interface ApiCallBudgetStateRepository extends JpaRepository<ApiCallBudge
 
         /**
          * 날짜별 예산 행을 원자적으로 생성한다.
-         * 여러 인스턴스가 동시에 최초 호출하더라도 PK 중복 예외를 발생시키지 않는다.
+         * 기존 행은 카운터를 유지한 채 배타 잠금을 얻어 공유→배타 잠금 전환 경쟁을 피한다.
+         * 최초 생성 경쟁도 같은 PK의 UPSERT로 처리하며 실제 증가는 아래 조건부 UPDATE만 수행한다.
          */
         @Modifying
         @Query(value = """
-                        INSERT IGNORE INTO api_call_budget
+                        INSERT INTO api_call_budget
                             (id, provider, usage_date, prefetch_calls, demand_calls)
                         VALUES (:id, :provider, :usageDate, 0, 0)
+                        ON DUPLICATE KEY UPDATE id = api_call_budget.id
                         """, nativeQuery = true)
         int insertIfAbsent(
                         @Param("id") String id,

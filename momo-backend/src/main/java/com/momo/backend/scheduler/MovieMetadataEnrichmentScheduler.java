@@ -33,6 +33,11 @@ public class MovieMetadataEnrichmentScheduler {
             );
 
             for (Movie movie : movies) {
+                // 예외적인 조회 결과도 상세 서비스로 넘기지 않고 다음 후보를 처리한다.
+                if (movie == null || movie.getMovieCode() == null || movie.getMovieCode().isBlank()) {
+                    log.warn("영화 상세정보 자동 보완 대상 제외: 영화 코드가 비어 있습니다.");
+                    continue;
+                }
                 try {
                     movieService.getMovieDetail(movie.getMovieCode());
                 } catch (Exception exception) {

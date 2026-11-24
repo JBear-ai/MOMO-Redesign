@@ -81,10 +81,13 @@ public interface MovieRepository extends JpaRepository<Movie, String> {
             Pageable pageable
     );
 
+    // 일반 공백뿐 아니라 탭·개행·유니코드 구분자만 있는 코드도 배치 제한 전에 제외한다.
     @Query("""
             select movie
               from Movie movie
-             where (movie.titleEn is null or trim(movie.titleEn) = ''
+             where movie.movieCode is not null
+               and function('regexp_like', movie.movieCode, '[^\\s\\p{Z}]') = true
+               and (movie.titleEn is null or trim(movie.titleEn) = ''
                  or movie.releaseDate is null or trim(movie.releaseDate) = ''
                  or movie.showTime is null or trim(movie.showTime) = ''
                  or movie.genre is null or trim(movie.genre) = ''
