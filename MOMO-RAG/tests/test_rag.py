@@ -40,7 +40,7 @@ class EngineTest(unittest.TestCase):
         self.assertEqual(self.engine.delete(910001), 0)
 
 class ApiTest(unittest.TestCase):
-    def test_lifespan_auth_index_delete_and_query_stub(self):
+    def test_lifespan_auth_index_delete_and_query(self):
         with patch.dict(os.environ, {"SERVICE_TOKEN": "test-only"}):
             with TestClient(app) as client:
                 self.assertEqual(client.get("/health").json(), {"status": "OK"})
@@ -52,7 +52,8 @@ class ApiTest(unittest.TestCase):
                 response = client.post("/index", json=payload, headers=headers)
                 self.assertGreater(response.json()["chunks"], 0)
                 self.assertTrue(client.app.state.engine.search("우주", [910001], 3))
-                self.assertEqual(client.post("/query", json={"question": "우주", "board_ids": [910001]}, headers=headers).json()["trace"], ["todo"])
+                self.assertEqual(client.post("/query", json={"question": "우주", "board_ids": [910001]}, headers=headers).json()["trace"],
+                                 ["retrieve", "grade", "generate", "format"])
                 self.assertEqual(client.post("/index", json={**payload, "review_id": -1}, headers=headers).status_code, 422)
                 self.assertGreater(client.delete("/index/910001", headers=headers).json()["deleted"], 0)
                 self.assertEqual(client.app.state.engine.search("우주", [910001], 3), [])

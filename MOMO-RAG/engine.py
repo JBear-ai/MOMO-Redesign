@@ -6,6 +6,19 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from settings import Settings
 
 
+ABSTAIN_MESSAGE = "관련 영화 리뷰에서 답변의 근거를 찾지 못했습니다. 질문을 바꾸거나 관련 리뷰를 작성해 주세요."
+
+# 의미 추론 없이 질문의 상투적인 요청 표현만 제거하는 수업용 재작성 규칙이다.
+_REWRITE_WORDS = ("알려주세요", "알려 주세요", "알려줘", "알려 줘", "궁금해요", "궁금해",
+                  "어떤가요", "어때요", "어때", "인가요", "있나요", "하나요")
+
+
+def body_of(text: str) -> str:
+    """청크에 붙인 제목 줄을 제외한 본문을 답변과 출처 미리보기에 사용한다."""
+    lines = text.split("\n", 1)
+    return lines[1].strip() if len(lines) == 2 and lines[0].startswith("제목:") else text.strip()
+
+
 @dataclass(frozen=True)
 class Chunk:
     review_id: int
@@ -60,3 +73,16 @@ class StubEngine:
             if score > 0 and score >= self.min_score:
                 result.append(Chunk(c.review_id, c.movie_code, c.title, c.text, round(score, 3)))
         return sorted(result, key=lambda c: c.score, reverse=True)[:k]
+
+    def rewrite(self, question: str) -> str:
+        """검색 점수는 바꾸지 않고 요청 표현과 물음표만 제거한다. LLM은 호출하지 않는다."""
+        query = question
+        for word in _REWRITE_WORDS:
+            query = query.replace(word, " ")
+        return " ".join(re.sub(r"[?？]", " ", query).split()) or question
+
+    def generate(self, question: str, chunks: list[Chunk]) -> str:
+        """가장 유사한 청크의 일부를 인용한다. 여러 리뷰를 종합하거나 사실을 추론하지 않는다."""
+        best = chunks[0]
+        snippet = body_of(best.text).replace("\n", " ")[:150]
+        return f"모의 답변 — ‘{best.title}’ 리뷰의 내용: {snippet} [리뷰 #{best.review_id}]"
